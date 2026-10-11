@@ -13,6 +13,11 @@ gate = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(gate)
 
 
+class IsDotnetTest(unittest.TestCase):
+    def test_a_path_under_dotnet_is_dotnet_code(self):
+        self.assertTrue(gate.is_dotnet("dotnet/src/Core/Run.cs"))
+
+
 class ChecksRunInDotnetFolderTest(unittest.TestCase):
     """A stub dotnet records the folder it ran in."""
 
@@ -37,7 +42,6 @@ class ChecksRunInDotnetFolderTest(unittest.TestCase):
         self.git("commit", "-q", "-m", "first")
         self.git("update-ref", "refs/remotes/origin/main", "HEAD")
         self.git("switch", "-q", "-c", "fix/x")
-        self.write("dotnet/X.slnx")
         self.write("dotnet/A.cs")
         self.git("add", "dotnet")
 
@@ -52,9 +56,6 @@ class ChecksRunInDotnetFolderTest(unittest.TestCase):
     def folders(self):
         with open(self.record) as file:
             return set(file.read().split())
-
-    def test_a_staged_dotnet_path_is_dotnet_code(self):
-        self.assertTrue(gate.is_dotnet("dotnet/src/Core/Run.cs"))
 
     def test_commit_checks_run_in_the_dotnet_folder(self):
         gate.before_commit(self.repo)

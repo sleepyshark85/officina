@@ -63,7 +63,7 @@ def is_ruby(path):
 
 
 def is_dotnet(path):
-    """Whether the path is .NET's: its dotnet/ folder and the root's own files, as .github/changes.py has it."""
+    """Whether the path is .NET's: anything outside go/ and ruby/."""
     return not is_go(path) and not is_ruby(path)
 
 

@@ -47,7 +47,7 @@ only a live run or inspection checks, noted in the last column.
 
 | ID | Tests | Also checked by |
 |---|---|---|
-| GEN-01 | Deps/DependencyRulesTests: `The_core_referencing_any_package_fails`, `The_core_referencing_another_project_fails`; Deps/RepositoryDependencyTests: `The_solution_follows_the_dependency_rules` | Inspection: no domain, UI, storage or transport in `src/Sleepyshark.Officina` |
+| GEN-01 | Deps/DependencyRulesTests: `The_core_referencing_any_package_fails`, `The_core_referencing_another_project_fails`; Deps/RepositoryDependencyTests: `The_solution_follows_the_dependency_rules` | Inspection: no domain, UI, storage or transport in `dotnet/src/Sleepyshark.Officina` |
 | GEN-02 | Core/RunTests: `An_agent_with_only_a_model_and_instructions_runs_statelessly`; Core/AgentTests: `An_agent_needs_a_model_and_instructions` | |
 | GEN-03 | Core/OutputTests: `A_stateless_run_starts_a_new_conversation_each_time`; Core/RunTests: `A_scripted_multi_turn_conversation_completes_with_text`; Samples/ExtractionTests, Samples/ChatAssistantTests | |
 | GEN-04 | Core/ToolLoopTests: `An_unattended_run_denies_calls_that_need_approval_and_tells_the_model_why`, `An_approved_call_runs`; Samples/BackgroundAgentTests: `An_unattended_job_reads_the_ticket_is_denied_the_refund_…` | |
