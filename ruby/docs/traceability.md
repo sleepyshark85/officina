@@ -1,8 +1,8 @@
 # Ruby traceability
 
 Each phase 1 requirement of [`REQUIREMENTS.md`](../../REQUIREMENTS.md), and the tests that check it in the Ruby
-implementation, or how it is checked otherwise, as [`docs/traceability.md`](../../docs/traceability.md) does for .NET.
-It grows with each slice; Ruby S13 completes it.
+implementation, or how it is checked otherwise, as [`dotnet/docs/traceability.md`](../../dotnet/docs/traceability.md)
+does for .NET. It grows with each slice; Ruby S13 completes it.
 
 Tests are under `ruby/`, shortened as:
 

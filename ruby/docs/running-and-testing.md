@@ -2,7 +2,7 @@
 
 How to install, run and test Officina for Ruby and Bookshop Assistant, as `main` has them. Commands run from `ruby/`
 unless a block says otherwise. What the code is and why: [`../README.md`](../README.md), [`design.md`](design.md) and
-[`docs/implementations/ruby.md`](../../docs/implementations/ruby.md).
+[`ruby/docs/decisions.md`](decisions.md).
 
 ## Prerequisites
 

@@ -14,7 +14,7 @@ Kind asked for: `$0` (`developer`, `fix`, `review` or `merge-check`).
 2. Fill every `{{…}}` placeholder. Don't copy rules into the brief: it points to
    [docs/conventions.md](../../../docs/conventions.md), the language rules and [agent-rules.md](agent-rules.md).
 3. Check the brief before sending it:
-   - **Sections:** named ones (`ARCHITECTURE §5.1–§5.3`, `docs/implementations/ruby.md R9`), never a whole document.
+   - **Sections:** named ones (`ARCHITECTURE §5.1–§5.3`, `ruby/docs/decisions.md R9`), never a whole document.
    - **Branch and base:** the base is the branch the PR sits on, and a stacked one names that PR.
    - **Files:** with agents working in parallel, each brief lists its own files, and no two briefs share one.
    - **Scratch prefix:** unique among the agents running now (the slice id, plus the part or round).

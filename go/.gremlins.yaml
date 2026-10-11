@@ -1,6 +1,6 @@
 # gremlins (G12): go-mutation fails below these. Go S08's honest baseline (the shared testdata found through
 # OFFICINA_TESTDATA) was 99.1% efficacy and 83.4% mutant coverage; the floors leave room for a few new survivors and
-# for coverage's swing (docs/implementations/go.md).
+# for coverage's swing (go/docs/decisions.md).
 unleash:
   threshold:
     efficacy: 95

@@ -7,8 +7,8 @@ namespace BookshopAssistant.Tests;
 /// <summary>
 /// The live smoke tests: the real console, Claude in demo mode and the database in Docker, with only the staff member
 /// scripted. One places an order with approval; the other reaches a compaction with the demo script's catalogue
-/// searches (<c>docs/demo.md</c>). Both check that every model call after the first reads the cache. Together they cost
-/// about $0.40, so they run only on demand: see the README.
+/// searches (<c>dotnet/docs/demo.md</c>). Both check that every model call after the first reads the cache. Together
+/// they cost about $0.40, so they run only on demand: see the README.
 /// </summary>
 [Trait("Category", "Live")]
 public class LiveSmokeTests(BookshopDatabase database) : IClassFixture<BookshopDatabase>

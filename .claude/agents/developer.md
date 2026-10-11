@@ -15,9 +15,10 @@ REQUIREMENTS.md for the IDs your change covers and ARCHITECTURE.md for the conce
 2. Build the smallest thing that meets the acceptance criteria, to the code quality bar in docs/conventions.md:
    mediocre code is sent back even when it works. Write the tests as you go, as its *Tests* section and the bar's
    *Tests* and *Mutation* rows say.
-3. Keep the docs in step: docs/traceability.md for every test named after a requirement; your implementation's design
-   notes (docs/design for .NET, go/docs/design.md, ruby/docs/design.md) for every choice the code alone doesn't
-   explain and for its runtime-model table (ARCHITECTURE §5.3); docs/design when .NET types move;
+3. Keep the docs in step: your implementation's docs/traceability.md (dotnet/, go/ or ruby/) for every test named
+   after a requirement; its design notes (dotnet/docs/design for .NET, go/docs/design.md, ruby/docs/design.md) for
+   every choice the code alone doesn't explain and for its runtime-model table (ARCHITECTURE §5.3);
+   dotnet/docs/design when .NET types move;
    README when how to run something changes. ARCHITECTURE.md stays free of type and API names.
 4. Before committing, run the tests the change affects; the hook runs the whole suite before a push. Stage in its own
    command, then commit; the hook runs the format check and

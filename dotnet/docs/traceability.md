@@ -1,7 +1,7 @@
 # Phase 1 traceability
 
-Each phase 1 requirement of [`REQUIREMENTS.md`](../REQUIREMENTS.md) (§2, §4) and the tests that check it, or how it is
-checked otherwise. AGT-07 and TOOL-07 moved to the north star (NS-18) and are not listed.
+Each phase 1 requirement of [`REQUIREMENTS.md`](../../REQUIREMENTS.md) (§2, §4) and the tests that check it, or how it
+is checked otherwise. AGT-07 and TOOL-07 moved to the north star (NS-18) and are not listed.
 
 Test files are under `dotnet/tests/`, shortened as:
 
@@ -40,7 +40,7 @@ only a live run or inspection checks, noted in the last column.
 | APP-16 | App/AuditTests: `APP_16_audit_shows_the_session_s_entries_grouped_by_run_…`, `APP_16_audit_with_an_id_shows_an_earlier_session`, `The_table_keeps_every_field_of_an_entry_and_reads_a_session_s_entries_in_order`, `A_write_the_database_refuses_throws` | |
 | APP-17 | App/LongConversationTests: `APP_17_demo_mode_compacts_and_clears_early_and_the_console_and_audit_report_each`, `Outside_demo_mode_compaction_and_clearing_come_later`, `A_compacting_reply_without_text_says_so`, `A_clearing_the_provider_repeats_is_shown_once_and_a_new_one_again`; App/ToolTests: `A_broad_search_returns_10_to_15k_tokens_within_the_result_limit` | Live compaction: smoke test and demo script |
 | APP-18 | App/EndToEndTests: `APP_18_with_the_database_down_tools_return_errors_and_once_it_is_back_the_session_works_again`; App/ToolTests: `With_the_database_down_tools_fail_and_once_it_is_back_they_work_again` | |
-| APP-19 | — | The demo script, [`docs/demo.md`](demo.md) |
+| APP-19 | — | The demo script, [`dotnet/docs/demo.md`](demo.md) |
 | APP-20 | Core/TelemetryTests: `A_run_is_one_trace_with_a_span_per_model_call_and_per_tool_call_…`, `Metrics_count_tokens_…`; App/AuditTests: `APP_16_audit_shows_…` (trace links) | The dashboard view: demo script |
 
 ## Generality (GEN)

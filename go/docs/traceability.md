@@ -1,8 +1,8 @@
 # Go traceability
 
 Each phase 1 requirement of [`REQUIREMENTS.md`](../../REQUIREMENTS.md), and the tests that check it in the Go
-implementation, or how it is checked otherwise, as [`docs/traceability.md`](../../docs/traceability.md) does for .NET.
-AGT-07 and TOOL-07 moved to the north star (NS-18), so nothing checks them.
+implementation, or how it is checked otherwise, as [`dotnet/docs/traceability.md`](../../dotnet/docs/traceability.md)
+does for .NET. AGT-07 and TOOL-07 moved to the north star (NS-18), so nothing checks them.
 
 Tests are under `go/`, shortened as:
 

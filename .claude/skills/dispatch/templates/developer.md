@@ -5,11 +5,11 @@ goes to [fix](fix.md) instead.
 
 ```text
 Build {{implementation}} {{slice}}{{ part, e.g. " part A: the schema DSL", or nothing}}.
-Acceptance criteria: docs/plan/phase-1.md, the {{slice}} row of Slices and its {{implementation}} column of Per
-implementation{{; what this part leaves to the other, or nothing}}.
+Acceptance criteria: docs/plan/phase-1.md, the {{slice}} row of Slices, and its row in {{implementation}}'s
+docs/plan.md{{; what this part leaves to the other, or nothing}}.
 
 Branch `{{branch}}` from `origin/{{base}}`; open the PR against `{{base}}`{{, stacked on #N, or nothing}}.
-Read first: {{named sections, e.g. "REQUIREMENTS TOOL-01…06; ARCHITECTURE §4.2, §5.2, §5.3; docs/implementations/ruby.md R9, R19"}}.
+Read first: {{named sections, e.g. "REQUIREMENTS TOOL-01…06; ARCHITECTURE §4.2, §5.2, §5.3; ruby/docs/decisions.md R9, R19"}}.
 Your files: {{paths}}. Other agents own {{paths and who, or "nothing: no one else is working"}}.
 Scratch prefix: `{{prefix}}-`. Live API cap: {{"$X for the whole task" or "no live calls"}}.
 

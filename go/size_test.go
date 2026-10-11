@@ -10,7 +10,7 @@ import (
 )
 
 // coreLineBudget caps the core's code lines: lines of its non-test files that hold code, not only blanks or
-// comments. Growing past it needs a reason and a change here and in docs/implementations/go.md (G13).
+// comments. Growing past it needs a reason and a change here and in go/docs/decisions.md (G13).
 const coreLineBudget = 3500
 
 func TestCoreSize_StaysWithinItsLineBudget(t *testing.T) {

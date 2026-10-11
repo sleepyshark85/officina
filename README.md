@@ -10,16 +10,19 @@ PostgreSQL in Docker.
 - [`REQUIREMENTS.md`](REQUIREMENTS.md): what to build, phase 1 and north star.
 - [`ARCHITECTURE.md`](ARCHITECTURE.md): concepts, components, contracts and flows.
 - [`docs/conventions.md`](docs/conventions.md): how we work, in every implementation.
-- [`docs/implementations/`](docs/implementations/): each implementation's platform decisions.
+- Each implementation's platform decisions: [`dotnet/docs/decisions.md`](dotnet/docs/decisions.md),
+  [`go/docs/decisions.md`](go/docs/decisions.md), [`ruby/docs/decisions.md`](ruby/docs/decisions.md).
 - [`CLAUDE.md`](CLAUDE.md): working notes and the .NET rules; [`go/CLAUDE.md`](go/CLAUDE.md): the Go rules;
   [`ruby/CLAUDE.md`](ruby/CLAUDE.md): the Ruby rules.
 
-- [`docs/plan/phase-1.md`](docs/plan/phase-1.md): the phase 1 slices, shared by the .NET, Go and Ruby implementations.
-- [`docs/traceability.md`](docs/traceability.md): each phase 1 requirement and its tests.
-- [`docs/test-report.md`](docs/test-report.md): a dated summary of the tests, coverage, mutation scores, gates and open
-  gaps.
+- [`docs/plan/phase-1.md`](docs/plan/phase-1.md): the phase 1 slices, shared by the .NET, Go and Ruby implementations;
+  .NET's part: [`dotnet/docs/plan.md`](dotnet/docs/plan.md).
+- [`dotnet/docs/traceability.md`](dotnet/docs/traceability.md): each phase 1 requirement and its .NET tests.
+- [`dotnet/docs/test-report.md`](dotnet/docs/test-report.md): a dated summary of the tests, coverage, mutation scores,
+  gates and open gaps.
 
-Status: phase 1 complete; see [`docs/demo.md`](docs/demo.md) and [`docs/traceability.md`](docs/traceability.md).
+Status: phase 1 complete; see [`dotnet/docs/demo.md`](dotnet/docs/demo.md) and
+[`dotnet/docs/traceability.md`](dotnet/docs/traceability.md).
 
 ## Build and test
 
@@ -101,7 +104,7 @@ machine. If a port is taken, set another in `bookshop/.env`, beside `compose.yam
 change the matching setting (here `Database`) in `appsettings.Local.json`, as `compose.yaml` explains.
 
 Try: *Order the two cheapest fantasy books in stock for Alice Martin and tell me the total.* The demo script,
-[`docs/demo.md`](docs/demo.md), walks through every capability.
+[`dotnet/docs/demo.md`](dotnet/docs/demo.md), walks through every capability.
 
 `start.sh` starts the database, the telemetry dashboard and the export server in Docker, and leaves them running if
 they already are.

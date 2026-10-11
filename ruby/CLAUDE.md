@@ -1,7 +1,7 @@
 # Officina in Ruby — working rules
 
 Applies to everything under `ruby/`, on top of [`docs/conventions.md`](../docs/conventions.md). Decisions:
-[`docs/implementations/ruby.md`](../docs/implementations/ruby.md). Plan:
+[`ruby/docs/decisions.md`](docs/decisions.md). Plan: [`ruby/docs/plan.md`](docs/plan.md), Ruby's part of
 [`docs/plan/phase-1.md`](../docs/plan/phase-1.md).
 
 **These rules are strict.** The reviewer treats a breach as must-fix, like a design-rule breach. The references, in
@@ -30,7 +30,7 @@ would do) is rewritten.
   no `eval`, `instance_eval` or `class_eval` of strings; no global variables, class variables (`@@`) or mutable
   constants (freeze them); no `ObjectSpace`; `send` to a private method only in tests, and even there prefer the public
   API.
-- A new dependency meets the conventions' *Dependencies* row, with its line in `docs/implementations/ruby.md`.
+- A new dependency meets the conventions' *Dependencies* row, with its line in `ruby/docs/decisions.md`.
 
 ## Gems and API
 

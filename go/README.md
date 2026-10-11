@@ -5,8 +5,8 @@ The Go implementation of Officina: the same requirements ([`REQUIREMENTS.md`](..
 
 Status: phase 1 complete: every slice of the plan is in, Bookshop Assistant runs the demo script as written, and a
 session either implementation saved resumes in the other. See
-[`docs/plan/phase-1.md`](../docs/plan/phase-1.md) for the slices (the Go column),
-[`docs/implementations/go.md`](../docs/implementations/go.md) for the decisions and
+[`docs/plan.md`](docs/plan.md) for its part of the slices of
+[`docs/plan/phase-1.md`](../docs/plan/phase-1.md), [`docs/decisions.md`](docs/decisions.md) for the decisions and
 [`docs/traceability.md`](docs/traceability.md) for the tests of each requirement.
 
 Layout (G2, G3):

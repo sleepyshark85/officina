@@ -1,10 +1,10 @@
 # Bookshop Assistant demo script, Go (APP-19)
 
-The walkthrough of [`docs/demo.md`](../../docs/demo.md), for the Go application in [`cmd/bookshop`](../cmd/bookshop/):
-every Bookshop Assistant capability (APP-01…20) in one sitting of about 30 minutes, with what to type and what to
-expect, then a session the .NET application saved, resumed here. The model's wording varies from run to run; the tool
-lines (`>` a call, `<` its outcome, `?` an approval, `~` a context event) and the bracketed lines come from the console
-and do not.
+The walkthrough of [`dotnet/docs/demo.md`](../../dotnet/docs/demo.md), for the Go application in
+[`cmd/bookshop`](../cmd/bookshop/): every Bookshop Assistant capability (APP-01…20) in one sitting of about 30 minutes,
+with what to type and what to expect, then a session the .NET application saved, resumed here. The model's wording
+varies from run to run; the tool lines (`>` a call, `<` its outcome, `?` an approval, `~` a context event) and the
+bracketed lines come from the console and do not.
 
 **Cost.** Steps 1–12 cost about $0.30 to $1 together (step 7's request can make the model fetch much of the
 catalogue before you stop it), step 13 (demo mode) about $0.40 and step 14 a few cents. The status line after each
@@ -137,7 +137,8 @@ Its sessions do not resume in normal mode, nor the other way round.
 
 Both applications store sessions in the same table, with the same prefix fingerprint, so one goes on in the other with
 its cache intact. This needs the .NET 10 SDK; the .NET application reads its settings from `appsettings.json` and
-`appsettings.Local.json` in `dotnet/apps/BookshopAssistant` (step 0.3 of [`docs/demo.md`](../../docs/demo.md)).
+`appsettings.Local.json` in `dotnet/apps/BookshopAssistant` (step 0.3 of
+[`dotnet/docs/demo.md`](../../dotnet/docs/demo.md)).
 
 | Do | Expect |
 |---|---|

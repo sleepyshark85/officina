@@ -2,7 +2,7 @@
 
 How the core (`Sleepyshark.Officina`) is built, how the other projects implement it, what happens during one chat turn,
 and which design principles the code follows. This is the type-level view of the code as of 2026-10-06.
-[ARCHITECTURE.md](../../ARCHITECTURE.md) stays the authority for concepts and contracts, and holds no type names.
+[ARCHITECTURE.md](../../../ARCHITECTURE.md) stays the authority for concepts and contracts, and holds no type names.
 If the two disagree, the code is right and this page needs updating.
 
 | Diagram | Type |

@@ -3,7 +3,8 @@
 How we work on Officina in every implementation (.NET in [`dotnet/`](../dotnet/), Go in [`go/`](../go/), Ruby in
 [`ruby/`](../ruby/)). Each implementation adds its own language rules: [`CLAUDE.md`](../CLAUDE.md) for .NET,
 [`go/CLAUDE.md`](../go/CLAUDE.md) for Go, [`ruby/CLAUDE.md`](../ruby/CLAUDE.md) for Ruby. Its platform decisions are
-in [`docs/implementations/`](implementations/). Where the two disagree, the language's own rules win for how code is
+in its `docs/decisions.md` ([.NET](../dotnet/docs/decisions.md), [Go](../go/docs/decisions.md),
+[Ruby](../ruby/docs/decisions.md)). Where the two disagree, the language's own rules win for how code is
 written, and this page wins for what the code must do.
 
 ## How we work
@@ -44,16 +45,15 @@ written, and this page wins for what the code must do.
 
 ## Required checks
 
-Every PR needs all of these green before it merges, whatever it changes; branch protection on `main` requires all
-fifteen, and the branch to be up to date. Why the Go and Ruby workflows run on every PR is in their decisions (G15,
-R15).
+Every PR needs every implementation's required checks green before it merges, whatever it changes, and the review
+check below; branch protection on `main` requires all fifteen, and the branch to be up to date. Each implementation
+lists its own checks, and the workflows that report them, in its decisions page:
+[.NET](../dotnet/docs/decisions.md#required-checks), [Go](../go/docs/decisions.md#required-checks),
+[Ruby](../ruby/docs/decisions.md#required-checks).
 
-| Implementation | Workflow | Checks |
-|---|---|---|
-| .NET | `.github/workflows/ci.yml`, `mutation.yml` | `ubuntu-latest`, `windows-latest`, `quality`, `mutation` |
-| Go | `.github/workflows/go.yml` | `go-changes`, `go-ubuntu`, `go-windows`, `go-quality`, `go-mutation` |
-| Ruby | `.github/workflows/ruby.yml` | `ruby-changes`, `ruby-ubuntu`, `ruby-windows`, `ruby-quality`, `ruby-mutation` |
-| All | `.github/workflows/review.yml` | `review`: an approval by the owner or a collaborator, as *the review gate* below says |
+| Workflow | Check |
+|---|---|
+| `.github/workflows/review.yml` | `review`: an approval by the owner or a collaborator, as *the review gate* below says |
 
 - **The review gate** (`.github/review_gate.py`, tested in the `quality` job) counts as verdicts only comments starting
   `**Verdict:` by the owner, a member or a collaborator; a verdict names each commit whose full sha it contains. It
@@ -130,7 +130,7 @@ How it is applied:
 - **One architecture, every language.** The layers, the data flow and the runtime model (streaming, event order,
   concurrency, cancellation, persistence points) are defined once, in ARCHITECTURE.md §3, §5 and §12. Each
   implementation realizes them in its own idiom, and its design notes map every row of §5.3 to its mechanism
-  ([`docs/design/`](design/README.md) for .NET, [`go/docs/design.md`](../go/docs/design.md),
+  ([`dotnet/docs/design/`](../dotnet/docs/design/README.md) for .NET, [`go/docs/design.md`](../go/docs/design.md),
   [`ruby/docs/design.md`](../ruby/docs/design.md)). A change to a shared rule changes ARCHITECTURE.md first.
 - **One primitive:** a run of one agent. Everything else composes runs.
 - **Structured signals decide:** stop reasons, tool calls, validated output. Never parse free text to decide.
