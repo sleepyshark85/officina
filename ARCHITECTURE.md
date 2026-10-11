@@ -288,7 +288,7 @@ text) with a note.
 ### 5.3 Runtime model
 
 How a run uses time, threads and I/O, whatever the platform. Each implementation's design notes map every row to its
-own mechanism (`docs/implementations/` links them).
+own mechanism (each implementation's decisions page links them).
 
 | Aspect | The rule |
 |---|---|

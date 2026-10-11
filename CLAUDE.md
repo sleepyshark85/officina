@@ -3,8 +3,9 @@
 Officina is a purpose-neutral library for building agentic applications. Phase 1 is accepted against one reference
 application, **Bookshop Assistant**: an interactive console chatbot over PostgreSQL in Docker. It has three
 implementations: **.NET 10** in [`dotnet/`](dotnet/) (done), **Go** in [`go/`](go/) (done) and **Ruby** in
-[`ruby/`](ruby/) (in progress), each tracked in [`docs/plan/phase-1.md`](docs/plan/phase-1.md). Working in `go/` loads
-[`go/CLAUDE.md`](go/CLAUDE.md) as well, and working in `ruby/` loads [`ruby/CLAUDE.md`](ruby/CLAUDE.md).
+[`ruby/`](ruby/) (in progress), each tracked in its `docs/plan.md` against
+[`docs/plan/phase-1.md`](docs/plan/phase-1.md). Working in `go/` loads [`go/CLAUDE.md`](go/CLAUDE.md) as well, and
+working in `ruby/` loads [`ruby/CLAUDE.md`](ruby/CLAUDE.md).
 
 The conventions every implementation follows (workflow, tests, design rules, Claude API notes):
 
@@ -16,23 +17,25 @@ The conventions every implementation follows (workflow, tests, design rules, Cla
   Language-agnostic.
 - `ARCHITECTURE.md`: concepts, components, contracts and flows. **It holds no code, type names or API names;** keep it
   that way. Implementation detail goes in code and its comments.
-- `docs/implementations/`: each implementation's platform decisions (`dotnet.md`, `go.md`, `ruby.md`).
-- `docs/plan/phase-1.md`: the phase 1 slices, shared by every implementation, with notes and progress per
-  implementation.
+- `dotnet/docs/`, `go/docs/`, `ruby/docs/`: each implementation's docs, its platform decisions
+  (`decisions.md`) and its part of the plan (`plan.md`) among them.
+- `docs/plan/phase-1.md`: the phase 1 slices, shared by every implementation; each implementation's notes and
+  progress are in its `docs/plan.md`.
 
 ## The .NET implementation
 
 Code in `dotnet/`: `src/`, `tests/`, `apps/` and `samples/`, beside the solution; packages named under `Sleepyshark.Officina`. Decisions:
-[`docs/implementations/dotnet.md`](docs/implementations/dotnet.md). It replaces `~/sources/agentic-core` (the first
+[`dotnet/docs/decisions.md`](dotnet/docs/decisions.md). It replaces `~/sources/agentic-core` (the first
 Officina, now archived), whose Claude provider, MCP client, test kit and spike findings (`docs/spikes/` there) were
 reused (ARCHITECTURE §13).
 
-- `docs/design/`: the .NET type-level view (class, package and sequence diagrams, principles and trade-offs). Unlike
-  ARCHITECTURE.md it names types, so update it when a change moves what it shows. Each diagram's `.html` is the source;
-  the `.svg` beside it is exported from it. `docs/traceability.md` maps the .NET tests to requirement IDs.
+- `dotnet/docs/design/`: the .NET type-level view (class, package and sequence diagrams, principles and trade-offs).
+  Unlike ARCHITECTURE.md it names types, so update it when a change moves what it shows. Each diagram's `.html` is the
+  source; the `.svg` beside it is exported from it. `dotnet/docs/traceability.md` maps the .NET tests to requirement
+  IDs.
 - Prerequisites: Docker, the .NET 10 SDK, an Anthropic API key or `ant auth login` for live tests.
-- Required checks before a merge: [the conventions' table](docs/conventions.md#required-checks), every
-  implementation's included.
+- Required checks before a merge: [.NET's](dotnet/docs/decisions.md#required-checks) and
+  [the conventions' list](docs/conventions.md#required-checks), every implementation's and `review` included.
 - Hooks: before a commit that stages .NET code, `dotnet format --verify-no-changes` and the Release build in `dotnet/`
   (warnings are errors), and the staged files shown; before a push that changes more than docs outside `go/` and `ruby/`, the
   tests. After an edit to a `.cs` file, one type per file named after it, and no requirement IDs in comments. The Go

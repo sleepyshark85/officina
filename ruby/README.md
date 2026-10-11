@@ -4,10 +4,10 @@ The Ruby implementation of Officina: the same requirements ([`REQUIREMENTS.md`](
 ([`ARCHITECTURE.md`](../ARCHITECTURE.md)) as the .NET one in [`dotnet/`](../dotnet/) and the Go one in [`go/`](../go/),
 written as idiomatic Ruby.
 
-Status: in progress, from the skeleton (Ruby S01). See [`docs/plan/phase-1.md`](../docs/plan/phase-1.md) for the
-slices (the Ruby column), [`docs/implementations/ruby.md`](../docs/implementations/ruby.md) for the decisions,
-[`CLAUDE.md`](CLAUDE.md) for the working rules and [`docs/traceability.md`](docs/traceability.md) for the tests of
-each requirement.
+Status: in progress, from the skeleton (Ruby S01). See [`docs/plan.md`](docs/plan.md) for its part of the slices of
+[`docs/plan/phase-1.md`](../docs/plan/phase-1.md), [`docs/decisions.md`](docs/decisions.md) for the decisions,
+[`CLAUDE.md`](CLAUDE.md) for the working rules and [`docs/traceability.md`](docs/traceability.md) for the tests of each
+requirement.
 
 Layout (R2, R3); each gem has `lib/`, `sig/` (its RBS signatures), `test/` and its gemspec:
 

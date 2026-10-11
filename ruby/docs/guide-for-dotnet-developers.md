@@ -6,7 +6,7 @@ well and Ruby not at all. It describes the code on `main` as of 2026-10-11. How 
 
 The sources this guide sits on, in order of authority: [`REQUIREMENTS.md`](../../REQUIREMENTS.md) (what),
 [`ARCHITECTURE.md`](../../ARCHITECTURE.md) (concepts, contracts, runtime model), the decisions R1–R20 in
-[`docs/implementations/ruby.md`](../../docs/implementations/ruby.md), the choice-by-choice notes in
+[`ruby/docs/decisions.md`](decisions.md), the choice-by-choice notes in
 [`design.md`](design.md), and the working rules in [`ruby/CLAUDE.md`](../CLAUDE.md). Where this guide and the code
 disagree, the code wins.
 
@@ -983,7 +983,7 @@ whose failure is the run's result ([`tool_sources.rb:19`](../officina/lib/sleepy
 
 ### 4.1 Decisions R1–R20
 
-From [`docs/implementations/ruby.md`](../../docs/implementations/ruby.md); each row there has the full text.
+From [`ruby/docs/decisions.md`](decisions.md); each row there has the full text.
 
 | # | Decision | Why |
 |---|---|---|
@@ -1309,8 +1309,8 @@ check, and Steep's silent skip.
 
 ## 7. Ruby next to .NET's design diagrams
 
-The .NET type-level view is [`docs/design/README.md`](../../docs/design/README.md). Its class diagrams name .NET types
-and have no Ruby counterpart to draw; each other diagram maps to Ruby as follows.
+The .NET type-level view is [`dotnet/docs/design/README.md`](../../dotnet/docs/design/README.md). Its class diagrams
+name .NET types and have no Ruby counterpart to draw; each other diagram maps to Ruby as follows.
 
 | .NET diagram | How Ruby realizes it | In this guide |
 |---|---|---|

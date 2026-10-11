@@ -1,7 +1,7 @@
 # Go design notes
 
 Choices in the Go core that the code alone does not explain. Concepts are in
-[`ARCHITECTURE.md`](../../ARCHITECTURE.md); decisions G1…G17 in [`go.md`](../../docs/implementations/go.md).
+[`ARCHITECTURE.md`](../../ARCHITECTURE.md); decisions G1…G17 in [`decisions.md`](decisions.md).
 
 | Choice | Why |
 |---|---|

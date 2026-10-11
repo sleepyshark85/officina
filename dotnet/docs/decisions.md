@@ -2,7 +2,8 @@
 
 The phase 1 implementation, in [`dotnet/`](../../dotnet/) (`src/`, `tests/`, `apps/`, `samples/`). Its platform
 decisions fill in the language-agnostic ones of [`REQUIREMENTS.md`](../../REQUIREMENTS.md) §7. Working rules:
-[`CLAUDE.md`](../../CLAUDE.md). Status: phase 1 complete ([`docs/plan/phase-1.md`](../plan/phase-1.md)).
+[`CLAUDE.md`](../../CLAUDE.md). Status: phase 1 complete ([`plan.md`](plan.md)).
+Design notes, which map ARCHITECTURE §5.3: [`design/README.md`](design/README.md).
 
 | # | Fills in | Decision | Status |
 |---|---|---|---|
@@ -16,3 +17,12 @@ decisions fill in the language-agnostic ones of [`REQUIREMENTS.md`](../../REQUIR
 | N8 | Principle 11 | Core line budget: about 3,500 lines. | Decided |
 | N9 | TEST-07 | Property tests with CsCheck. | Decided |
 | N10 | NS-13 | Hosting helpers, when they enter, target ASP.NET Core. | Proposed |
+
+## Required checks
+
+.NET's share of the [required checks](../../docs/conventions.md#required-checks) every PR needs green, whatever it
+changes.
+
+| Workflow | Checks |
+|---|---|
+| `.github/workflows/ci.yml`, `mutation.yml` | `ubuntu-latest`, `windows-latest`, `quality`, `mutation` |

@@ -1,7 +1,7 @@
 # Ruby design notes
 
 Choices in the Ruby code that the code alone does not explain. Concepts are in
-[`ARCHITECTURE.md`](../../ARCHITECTURE.md); decisions R1…R20 in [`ruby.md`](../../docs/implementations/ruby.md); what
+[`ARCHITECTURE.md`](../../ARCHITECTURE.md); decisions R1…R20 in [`decisions.md`](decisions.md); what
 the Anthropic gem can and cannot do in [`spikes/claude-features.md`](spikes/claude-features.md). Each slice adds the
 rows for the choices it makes, and fills in its rows of the runtime-model table below.
 

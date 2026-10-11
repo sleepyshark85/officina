@@ -1,7 +1,8 @@
 # Officina in Go — working rules
 
 Applies to everything under `go/`, on top of [`docs/conventions.md`](../docs/conventions.md). Decisions:
-[`docs/implementations/go.md`](../docs/implementations/go.md). Plan: [`docs/plan/phase-1.md`](../docs/plan/phase-1.md).
+[`go/docs/decisions.md`](docs/decisions.md). Plan: [`go/docs/plan.md`](docs/plan.md), Go's part of
+[`docs/plan/phase-1.md`](../docs/plan/phase-1.md).
 
 **These rules are strict.** The reviewer treats a breach as must-fix, like a design-rule breach. The references, in
 order of precedence: [Effective Go](https://go.dev/doc/effective_go),
@@ -22,7 +23,7 @@ per file, a container, exceptions as panics, builders for everything) is rewritt
   `govulncheck ./...` clean; `go test -race -shuffle=on ./...` green. All before a commit or push, as for .NET.
 - No `GOEXPERIMENT`, no `unsafe`, no `cgo`, no `init()` functions. No `reflect` outside tests, except where the core
   derives a JSON Schema from a Go type (typed tools and typed output), and only there.
-- A new dependency meets the conventions' *Dependencies* row, with its line in `docs/implementations/go.md`.
+- A new dependency meets the conventions' *Dependencies* row, with its line in `go/docs/decisions.md`.
 
 ## Packages and API
 

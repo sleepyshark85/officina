@@ -3,7 +3,7 @@
 require 'test_helper'
 
 # The core stays small: a budget of code lines (lines of the core's lib/ that are neither blank nor only a comment),
-# raised only by a change to its decision in docs/implementations/ruby.md that says why.
+# raised only by a change to its decision in ruby/docs/decisions.md that says why.
 class CoreBudgetTest < Minitest::Test
   BUDGET = 2_800
   LIB = File.expand_path('../officina/lib', __dir__)
