@@ -253,7 +253,7 @@ bundle exec mutant session subject Sleepyshark::Officina::Budget#initialize   # 
 On `main`, the Ruby suite makes no live call: Claude is replaced by a scripted model and the API by a fake one, and
 nothing reads an API key. The live smoke test (TEST-04: APP-09 against the compose database, cache reads from the
 second call, a forced compaction, about $0.40 a run) is planned for Ruby S13, behind `OFFICINA_LIVE_TESTS=1` as in
-.NET ([phase 1 plan](../../docs/plan/phase-1.md)). Until then the live checks are by hand, with an API key:
+.NET ([Ruby plan](plan.md)). Until then the live checks are by hand, with an API key:
 
 ```sh
 bundle exec ruby examples/hello/hello.rb    # a chat; from the second message, the status line shows cache reads

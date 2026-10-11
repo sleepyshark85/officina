@@ -3,8 +3,9 @@
 Officina is a purpose-neutral library for building agentic applications. Phase 1 is accepted against one reference
 application, **Bookshop Assistant**: an interactive console chatbot over PostgreSQL in Docker. It has three
 implementations: **.NET 10** in [`dotnet/`](dotnet/) (done), **Go** in [`go/`](go/) (done) and **Ruby** in
-[`ruby/`](ruby/) (in progress), each tracked in [`docs/plan/phase-1.md`](docs/plan/phase-1.md). Working in `go/` loads
-[`go/CLAUDE.md`](go/CLAUDE.md) as well, and working in `ruby/` loads [`ruby/CLAUDE.md`](ruby/CLAUDE.md).
+[`ruby/`](ruby/) (in progress), each tracked in its `docs/plan.md` against
+[`docs/plan/phase-1.md`](docs/plan/phase-1.md). Working in `go/` loads [`go/CLAUDE.md`](go/CLAUDE.md) as well, and
+working in `ruby/` loads [`ruby/CLAUDE.md`](ruby/CLAUDE.md).
 
 The conventions every implementation follows (workflow, tests, design rules, Claude API notes):
 
@@ -34,7 +35,7 @@ reused (ARCHITECTURE §13).
   IDs.
 - Prerequisites: Docker, the .NET 10 SDK, an Anthropic API key or `ant auth login` for live tests.
 - Required checks before a merge: [.NET's](dotnet/docs/decisions.md#required-checks) and
-  [every other implementation's](docs/conventions.md#required-checks).
+  [the conventions' list](docs/conventions.md#required-checks), every implementation's and `review` included.
 - Hooks: before a commit that stages .NET code, `dotnet format --verify-no-changes` and the Release build in `dotnet/`
   (warnings are errors), and the staged files shown; before a push that changes more than docs outside `go/` and `ruby/`, the
   tests. After an edit to a `.cs` file, one type per file named after it, and no requirement IDs in comments. The Go

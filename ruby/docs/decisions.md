@@ -5,6 +5,7 @@ Assistant and samples as the .NET and Go ones, meeting the same [`REQUIREMENTS.m
 same acceptance criteria. It is a rewrite from the requirements and the architecture, written as idiomatic Ruby, not a
 translation of the C# or the Go. Working rules: [`ruby/CLAUDE.md`](../../ruby/CLAUDE.md). Plan:
 [`plan.md`](plan.md), Ruby's part of [`docs/plan/phase-1.md`](../../docs/plan/phase-1.md).
+Design notes, which map ARCHITECTURE §5.3: [`design.md`](design.md).
 
 Proposed 2026-10-10; the owner chose R12 (Minitest), R13 (mutant, once the repository is MIT-licensed) and R18 (RBS
 and Steep). Ruby S01 and Ruby S02 check every library named here before anything depends on it; one that fails is

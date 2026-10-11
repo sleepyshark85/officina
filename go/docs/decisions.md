@@ -4,7 +4,8 @@ The second implementation, in [`go/`](../../go/): the same core, Claude and MCP 
 and samples as the .NET one, meeting the same [`REQUIREMENTS.md`](../../REQUIREMENTS.md) with the same acceptance
 criteria. It is a rewrite from the requirements and the architecture, written as idiomatic Go, not a translation of
 the C#. Working rules: [`go/CLAUDE.md`](../../go/CLAUDE.md). Plan: [`plan.md`](plan.md), Go's part of
-[`docs/plan/phase-1.md`](../../docs/plan/phase-1.md).
+[`docs/plan/phase-1.md`](../../docs/plan/phase-1.md). Design notes, which map ARCHITECTURE §5.3:
+[`design.md`](design.md).
 
 The owner approved the plan's recommendations on 2026-10-09, so these decisions stand. Go S01 and Go S02 check every
 library named here before anything depends on it; one that fails is replaced through a PR to this page.

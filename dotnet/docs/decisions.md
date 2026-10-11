@@ -3,6 +3,7 @@
 The phase 1 implementation, in [`dotnet/`](../../dotnet/) (`src/`, `tests/`, `apps/`, `samples/`). Its platform
 decisions fill in the language-agnostic ones of [`REQUIREMENTS.md`](../../REQUIREMENTS.md) §7. Working rules:
 [`CLAUDE.md`](../../CLAUDE.md). Status: phase 1 complete ([`plan.md`](plan.md)).
+Design notes, which map ARCHITECTURE §5.3: [`design/README.md`](design/README.md).
 
 | # | Fills in | Decision | Status |
 |---|---|---|---|
