@@ -107,19 +107,20 @@ python3 -B scripts/agent-usage.py
 |---|---|---|---|---|---|---|---|---|---|
 | lead | lead | This session's main conversation | 2026-10-06 07:38 | 2026-10-06 07:44 | 13 | 598k | 572k | 49k | 7 |
 
-## Session 882087f6 (2026-10-10 02:00 to 2026-10-10 18:52 UTC)
+## Session 882087f6 (2026-10-10 02:00 to 2026-10-11 03:47 UTC)
 
 | Role | Agents | Input processed |
 |---|---|---|
-| lead | 1 | 333,999k |
-| reviewer | 57 | 202,867k |
-| developer | 56 | 1,142,296k |
-| fixer | 15 | 27,639k |
+| lead | 1 | 351,586k |
+| reviewer | 63 | 216,583k |
+| developer | 59 | 1,170,571k |
+| fixer | 19 | 31,643k |
 | claude-code-guide | 2 | 115k |
+| Explore | 1 | 2,116k |
 
 | Agent | Role | Task | Start (UTC) | End (UTC) | Calls | Input processed | Of which cache reads | Peak context | Active minutes |
 |---|---|---|---|---|---|---|---|---|---|
-| lead | lead | This session's main conversation | 2026-10-10 02:00 | 2026-10-10 18:52 | 786 | 333,999k | 332,546k | 960k | 802 |
+| lead | lead | This session's main conversation | 2026-10-10 02:00 | 2026-10-11 03:47 | 875 | 351,586k | 349,753k | 960k | 915 |
 | a8eb4164 | reviewer | Review Ruby plan and licence PRs | 2026-10-10 02:10 | 2026-10-10 08:57 | 190 | 41,017k | 38,076k | 384k | 152 |
 | a033fe44 | developer | Ruby S02 Claude features spike | 2026-10-10 04:36 | 2026-10-10 04:56 | 96 | 18,555k | 18,276k | 279k | 19 |
 | a9bee389 | reviewer | Review PR #83 Ruby S02 | 2026-10-10 04:50 | 2026-10-10 04:55 | 28 | 1,676k | 1,593k | 83k | 5 |
@@ -249,4 +250,42 @@ python3 -B scripts/agent-usage.py
 | a936aa5f | reviewer | Review PR #126 agent-usage times | 2026-10-10 18:21 | 2026-10-10 18:23 | 21 | 587k | 556k | 36k | 2 |
 | aa49468f | fixer | Document lead cost strategy in dispatch skill | 2026-10-10 18:30 | 2026-10-10 18:43 | 26 | 1,387k | 1,264k | 67k | 12 |
 | a5093f28 | reviewer | Review PR #127 lead cost strategy | 2026-10-10 18:32 | 2026-10-10 18:43 | 18 | 592k | 552k | 45k | 11 |
-| a5534ae2 | fixer | Regenerate agent-usage at session end | 2026-10-10 18:52 | 2026-10-10 18:52 | 1 | 36k | 0 | 36k | 0 |
+| a5534ae2 | fixer | Regenerate agent-usage at session end | 2026-10-10 18:52 | 2026-10-10 18:52 | 4 | 157k | 116k | 41k | 0 |
+| a31fadb1 | reviewer | Review PR #128 agent-usage regen | 2026-10-10 18:52 | 2026-10-10 18:53 | 5 | 92k | 70k | 22k | 0 |
+| a5c1d01c | fixer | Add owner-triggered follow-ups to later.md | 2026-10-11 02:13 | 2026-10-11 02:16 | 10 | 417k | 371k | 45k | 2 |
+| a793b213 | reviewer | Review PR #129 follow-ups doc | 2026-10-11 02:14 | 2026-10-11 02:16 | 16 | 506k | 467k | 39k | 2 |
+| a75d22b5 | developer | Ruby Bookshop local settings file | 2026-10-11 02:17 | 2026-10-11 02:36 | 64 | 6,967k | 6,693k | 145k | 19 |
+| a3e47915 | reviewer | Review PR #130 dotenv settings | 2026-10-11 02:25 | 2026-10-11 02:36 | 34 | 1,672k | 1,599k | 73k | 11 |
+| ac37fd72 | fixer | Add resume-vs-fresh rule to dispatch skill | 2026-10-11 02:36 | 2026-10-11 02:38 | 18 | 789k | 739k | 50k | 2 |
+| a5728ee9 | reviewer | Review PR #131 resume rule | 2026-10-11 02:36 | 2026-10-11 02:38 | 10 | 209k | 188k | 25k | 1 |
+| aef163e0 | developer | Write Ruby guide for .NET developers | 2026-10-11 02:53 | 2026-10-11 03:04 | 58 | 11,991k | 11,471k | 302k | 12 |
+| a9454880 | developer | Write Ruby running-and-testing doc | 2026-10-11 02:53 | 2026-10-11 03:03 | 91 | 9,317k | 9,164k | 153k | 10 |
+| a47ff355 | Explore | Compare Ruby with .NET design diagrams | 2026-10-11 02:57 | 2026-10-11 02:59 | 23 | 2,116k | 1,985k | 131k | 3 |
+| a5a54c4f | reviewer | Review PR #133 Ruby guide | 2026-10-11 03:11 | 2026-10-11 03:25 | 54 | 7,882k | 7,512k | 196k | 15 |
+| afc76375 | reviewer | Review PR #132 running-and-testing doc | 2026-10-11 03:11 | 2026-10-11 03:20 | 54 | 3,355k | 3,258k | 97k | 9 |
+| a85edc79 | fixer | Fix #132 round-1 must-fix | 2026-10-11 03:16 | 2026-10-11 03:20 | 15 | 747k | 688k | 57k | 4 |
+| ac32a787 | fixer | Fix #133 round-1 must-fixes | 2026-10-11 03:22 | 2026-10-11 03:25 | 29 | 1,930k | 1,859k | 87k | 4 |
+
+## Session 44d3f5b1 (2026-10-11 03:42 to 2026-10-11 06:17 UTC)
+
+| Role | Agents | Input processed |
+|---|---|---|
+| lead | 1 | 4,810k |
+| developer | 3 | 17,876k |
+| reviewer | 4 | 8,250k |
+| fixer | 4 | 5,207k |
+
+| Agent | Role | Task | Start (UTC) | End (UTC) | Calls | Input processed | Of which cache reads | Peak context | Active minutes |
+|---|---|---|---|---|---|---|---|---|---|
+| lead | lead | This session's main conversation | 2026-10-11 03:42 | 2026-10-11 06:17 | 58 | 4,810k | 4,524k | 122k | 155 |
+| ad6a9d55 | developer | Restructure phase 1: bookshop/ env | 2026-10-11 03:48 | 2026-10-11 03:58 | 58 | 5,368k | 5,244k | 124k | 10 |
+| a9283172 | reviewer | Review PR #134 round 1 | 2026-10-11 03:58 | 2026-10-11 04:08 | 30 | 1,698k | 1,609k | 89k | 10 |
+| a41405f5 | fixer | Fix PR #134 round 1 | 2026-10-11 04:03 | 2026-10-11 04:08 | 11 | 490k | 439k | 51k | 5 |
+| aba22d80 | developer | Restructure phase 2: dotnet/ | 2026-10-11 04:11 | 2026-10-11 04:18 | 63 | 6,329k | 6,193k | 136k | 7 |
+| aad12a1f | fixer | Hook prep PR for dotnet/ | 2026-10-11 04:25 | 2026-10-11 04:45 | 38 | 2,028k | 1,897k | 67k | 20 |
+| ae231c4b | reviewer | Review PR #135 round 1 | 2026-10-11 04:28 | 2026-10-11 04:44 | 30 | 1,158k | 1,069k | 52k | 16 |
+| a9047020 | fixer | Finish phase 2 commit and PR | 2026-10-11 04:45 | 2026-10-11 05:43 | 30 | 1,660k | 1,372k | 69k | 58 |
+| aa11e2f0 | reviewer | Review PR #136 round 1 | 2026-10-11 04:48 | 2026-10-11 05:42 | 47 | 3,253k | 2,904k | 96k | 54 |
+| a3b0dbfe | developer | Restructure phase 3: docs split | 2026-10-11 05:45 | 2026-10-11 05:57 | 59 | 6,179k | 6,017k | 163k | 12 |
+| ab253867 | reviewer | Review PR #137 round 1 | 2026-10-11 05:57 | 2026-10-11 06:13 | 35 | 2,141k | 1,961k | 93k | 16 |
+| ade163c7 | fixer | Fix PR #137 round 1 | 2026-10-11 06:01 | 2026-10-11 06:14 | 21 | 1,029k | 921k | 56k | 13 |
