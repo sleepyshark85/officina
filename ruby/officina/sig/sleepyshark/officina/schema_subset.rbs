@@ -1,6 +1,12 @@
 module Sleepyshark
   module Officina
     module SchemaSubset
+      PROPERTIES: String
+      ADDITIONAL_PROPERTIES: String
+      REQUIRED: String
+      ITEMS: String
+      ANY_OF: String
+      PATTERN: String
       TYPES: Hash[String, Proc]
       COUNT: ^(untyped) -> String?
       NUMBER: ^(untyped) -> String?

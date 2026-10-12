@@ -17,9 +17,11 @@ module Bookshop
       def usage = [name, *argument].join(' ')
     end
 
+    # The command the hint at the start and after an unknown command names.
+    HELP_COMMAND = Command.new('/help', nil, 'Show this help.', :help)
     # The commands, by name, in the order the help lists them.
     COMMANDS = [
-      Command.new('/help', nil, 'Show this help.', :help),
+      HELP_COMMAND,
       Command.new('/new', nil, 'Start a new session.', :start_new),
       Command.new('/sessions', nil, 'List the latest sessions.', :list_sessions),
       Command.new('/resume', '<id>', 'Go on with the session with that id.', :resume),
@@ -30,12 +32,12 @@ module Bookshop
     ].to_h { [it.name, it] }.freeze
     # What starts a command, rather than a message.
     COMMAND_START = '/'
-    HELP_HINT = "Type #{COMMANDS.fetch('/help').name} for commands.".freeze
+    HELP_HINT = "Type #{HELP_COMMAND.name} for commands.".freeze
     # Each command's help line, its usage padded to line the help lines up two spaces after the longest.
     USAGE_WIDTH = COMMANDS.values.map { it.usage.length }.max + 2
     HELP = ['Commands:', *COMMANDS.values.map { "  #{it.usage.ljust(USAGE_WIDTH)}#{it.help}" },
             'Anything else is a message to the assistant. Ctrl+C stops a reply in progress.'].join("\n").freeze
-    private_constant :Command, :COMMANDS, :COMMAND_START, :HELP_HINT, :USAGE_WIDTH, :HELP
+    private_constant :Command, :HELP_COMMAND, :COMMANDS, :COMMAND_START, :HELP_HINT, :USAGE_WIDTH, :HELP
 
     # @param agent [Sleepyshark::Officina::Agent] the chat agent, whose approver is +approvals+
     # @param approvals [Approvals]

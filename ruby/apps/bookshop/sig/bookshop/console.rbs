@@ -11,6 +11,7 @@ module Bookshop
       def usage: () -> String
     end
 
+    HELP_COMMAND: Command
     COMMANDS: Hash[String, Command]
     COMMAND_START: String
     HELP_HINT: String
