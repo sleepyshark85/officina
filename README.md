@@ -19,7 +19,7 @@ PostgreSQL in Docker.
   .NET's part: [`dotnet/docs/plan.md`](dotnet/docs/plan.md).
 - [`dotnet/docs/traceability.md`](dotnet/docs/traceability.md): each phase 1 requirement and its .NET tests.
 - [`dotnet/docs/test-report.md`](dotnet/docs/test-report.md): a dated summary of the tests, coverage, mutation scores,
-  gates and open gaps.
+  gates and open gaps; Ruby's: [`ruby/docs/test-report.md`](ruby/docs/test-report.md).
 
 Status: phase 1 complete; see [`dotnet/docs/demo.md`](dotnet/docs/demo.md) and
 [`dotnet/docs/traceability.md`](dotnet/docs/traceability.md).
