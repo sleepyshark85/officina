@@ -98,17 +98,12 @@ module Bookshop
     end
 
     def log(conversation, result)
+      reply = "Reply in conversation #{conversation}"
       case result
-      in Officina::Failed(reason:, detail:)
-        @logger.error("Reply in conversation #{conversation} failed (#{reason}): #{detail}")
-      in Officina::Completed(usage:) then ended(conversation, 'completed', usage)
-      in Officina::Stopped(reason:, usage:) then ended(conversation, "stopped (#{reason})", usage)
+      in Officina::Failed(reason:, detail:) then @logger.error("#{reply} failed (#{reason}): #{detail}")
+      in Officina::Completed(usage:) then @logger.info("#{reply} completed: #{Spent.logged(usage)}")
+      in Officina::Stopped(reason:, usage:) then @logger.info("#{reply} stopped (#{reason}): #{Spent.logged(usage)}")
       end
-    end
-
-    def ended(conversation, how, usage)
-      @logger.info("Reply in conversation #{conversation} #{how}: " \
-                   "#{usage.all_input} input tokens, #{usage.output} output tokens")
     end
   end
   private_constant :Telemetry

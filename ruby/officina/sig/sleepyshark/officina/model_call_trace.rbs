@@ -1,6 +1,8 @@
 module Sleepyshark
   module Officina
     class ModelCallTrace
+      OPERATION: String
+
       @run: RunTrace
       @started: Time
       @span: OpenTelemetry::Trace::Span

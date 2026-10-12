@@ -3,7 +3,7 @@ module Bookshop
     attr_reader time: Time
     attr_reader run: String
     attr_reader trace_id: String?
-    attr_reader kind: String
+    attr_reader kind: Symbol
     attr_reader tool: String?
     attr_reader outcome: String?
     attr_reader detail: String?
@@ -11,7 +11,7 @@ module Bookshop
     attr_reader usage: Sleepyshark::Officina::Usage?
     attr_reader cost: BigDecimal?
 
-    def self.new: (time: Time, run: String, trace_id: String?, kind: String, tool: String?, outcome: String?,
+    def self.new: (time: Time, run: String, trace_id: String?, kind: Symbol, tool: String?, outcome: String?,
                    detail: String?, duration: Float?, usage: Sleepyshark::Officina::Usage?, cost: BigDecimal?) -> instance
   end
 end

@@ -15,10 +15,13 @@ module Bookshop
       integer :limit, 'The most books to return, 20 if not given.', optional: true
     end
 
-    BOOK = Input.define { integer :book_id, "The book's id." }
+    # The description of a book's id, which the order tools' input has too.
+    BOOK_ID = "The book's id."
+
+    BOOK = Input.define { integer :book_id, BOOK_ID }
 
     RESTOCK = Input.define do
-      integer :book_id, "The book's id."
+      integer :book_id, BOOK_ID
       integer :quantity, 'How many copies to add, at least 1.'
     end
 

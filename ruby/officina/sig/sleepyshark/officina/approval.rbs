@@ -10,6 +10,8 @@ module Sleepyshark
       def initialize: (approved: bool, ?reason: String?) -> void
 
       def approved?: () -> bool
+
+      def answer: () -> String
     end
   end
 end

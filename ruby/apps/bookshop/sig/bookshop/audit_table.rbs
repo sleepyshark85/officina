@@ -5,6 +5,8 @@ module Bookshop
 
     @database: Database
 
+    def self.word: (Symbol kind) -> String
+
     def initialize: (database: Database) -> void
     def write: (Sleepyshark::Officina::AuditEntry entry) -> void
     def entries: (String conversation) -> Array[AuditRecord]
@@ -13,7 +15,7 @@ module Bookshop
 
     def values: (Sleepyshark::Officina::AuditEntry entry) -> Array[untyped]
     def spent: (Sleepyshark::Officina::AuditEntry entry) -> Array[untyped]
-    def kind: (Symbol symbol) -> String
+    def kind: (String word) -> Symbol
     def record: (Hash[Symbol, untyped] row) -> AuditRecord
     def usage: (Hash[Symbol, untyped] row) -> Sleepyshark::Officina::Usage?
   end

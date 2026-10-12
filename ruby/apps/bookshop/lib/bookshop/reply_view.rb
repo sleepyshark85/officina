@@ -114,11 +114,12 @@ module Bookshop
     end
 
     def stopped(reason)
-      case reason
-      when :cancelled then '[Cancelled.]'
-      when :budget then "[Stopped: #{@budget_reached}]"
-      else "[Stopped: #{reason.to_s.tr('_', ' ')}.]"
-      end
+      why = case reason
+            when :cancelled then return '[Cancelled.]'
+            when :budget then @budget_reached
+            else "#{reason.to_s.tr('_', ' ')}."
+            end
+      "[Stopped: #{why}]"
     end
   end
   private_constant :ReplyView

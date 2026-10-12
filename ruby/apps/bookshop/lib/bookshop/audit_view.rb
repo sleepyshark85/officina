@@ -43,16 +43,16 @@ module Bookshop
 
     def line(record)
       time = record.time.localtime.strftime('%H:%M:%S')
-      "  #{time}  #{record.kind.ljust(16)}  #{record.tool.to_s.ljust(20)}  #{outcome(record)}".rstrip
+      "  #{time}  #{AuditTable.word(record.kind).ljust(16)}  #{record.tool.to_s.ljust(20)}  #{outcome(record)}".rstrip
     end
 
     def outcome(record)
       case record
-      in { kind: 'RunEnded', usage: Usage => usage }
+      in { kind: :run_ended, usage: Usage => usage }
         "#{record.outcome}  #{spent(usage, record.cost || BigDecimal(0))}"
-      in { kind: 'ApprovalAnswered', detail: String => reason } then "#{record.outcome}: #{reason}"
-      in { kind: 'ToolEnded', duration: Float => seconds } then "#{record.outcome}  #{milliseconds(seconds)}"
-      in { kind: 'Compacted' | 'Cleared', detail: String => sentence } then sentence
+      in { kind: :approval_answered, detail: String => reason } then "#{record.outcome}: #{reason}"
+      in { kind: :tool_ended, duration: Float => seconds } then "#{record.outcome}  #{milliseconds(seconds)}"
+      in { kind: :compacted | :cleared, detail: String => sentence } then sentence
       else record.outcome.to_s
       end
     end

@@ -36,6 +36,9 @@ module Bookshop
 
     private_constant :SEARCH_RESULTS, :BOOKS, :SEARCH, :FIND, :RESTOCK
 
+    # Why a request naming a book the catalogue does not have is refused.
+    def self.no_book(id) = "There is no book with id #{id}."
+
     def initialize(database:)
       @database = database
       freeze
@@ -66,7 +69,7 @@ module Bookshop
 
       @database.transaction do |connection|
         restocked = connection.exec_params(RESTOCK, [book_id, quantity]).cmd_tuples
-        raise RefusedError, "There is no book with id #{book_id}." if restocked.zero?
+        raise RefusedError, self.class.no_book(book_id) if restocked.zero?
 
         read(connection, book_id)
       end
@@ -76,7 +79,7 @@ module Bookshop
 
     def read(connection, id)
       row = connection.exec_params(FIND, [id]).first
-      raise RefusedError, "There is no book with id #{id}." unless row
+      raise RefusedError, self.class.no_book(id) unless row
 
       book(row)
     end

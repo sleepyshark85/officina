@@ -6,19 +6,21 @@ module Bookshop
   module OrderTools
     Input = Sleepyshark::Officina::Input
 
-    CUSTOMER = Input.define { integer :customer_id, "The customer's id." }
+    CUSTOMER_ID = "The customer's id."
+
+    CUSTOMER = Input.define { integer :customer_id, CUSTOMER_ID }
 
     ORDER = Input.define { integer :order_id, "The order's id." }
 
     PLACE = Input.define do
-      integer :customer_id, "The customer's id."
+      integer :customer_id, CUSTOMER_ID
       array :lines, 'The books and copies to order, each book once.' do
-        integer :book_id, "The book's id."
+        integer :book_id, CatalogueTools::BOOK_ID
         integer :quantity, 'How many copies, at least 1.'
       end
     end
 
-    private_constant :Input, :CUSTOMER, :ORDER, :PLACE
+    private_constant :Input, :CUSTOMER_ID, :CUSTOMER, :ORDER, :PLACE
 
     class << self
       # @param orders [Orders]

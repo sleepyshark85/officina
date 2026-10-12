@@ -36,9 +36,12 @@ module Bookshop
 
     LOCK = 'select status from orders where id = $1 for update'
 
-    CANCEL = "update orders set status = 'cancelled' where id = $1"
+    CANCEL = 'update orders set status = $2 where id = $1'
 
-    private_constant :CUSTOMER_EXISTS, :OF_CUSTOMER, :FIND, :LINES, :INSERT, :INSERT_LINE, :LOCK, :CANCEL
+    # The status of a cancelled order.
+    CANCELLED = 'cancelled'
+
+    private_constant :CUSTOMER_EXISTS, :OF_CUSTOMER, :FIND, :LINES, :INSERT, :INSERT_LINE, :LOCK, :CANCEL, :CANCELLED
 
     def initialize(database:)
       @database = database
@@ -84,11 +87,11 @@ module Bookshop
     def cancel(id)
       @database.transaction do |connection|
         status = connection.exec_params(LOCK, [id]).first&.fetch(:status)
-        raise RefusedError, "There is no order with id #{id}." unless status
-        raise RefusedError, "Order #{id} is already cancelled." if status == 'cancelled'
+        raise RefusedError, no_order(id) unless status
+        raise RefusedError, "Order #{id} is already cancelled." if status == CANCELLED
 
         Stock.give_back(connection, id)
-        connection.exec_params(CANCEL, [id])
+        connection.exec_params(CANCEL, [id, CANCELLED])
         read(connection, id)
       end
     end
@@ -97,7 +100,7 @@ module Bookshop
 
     def read(connection, id)
       row = connection.exec_params(FIND, [id]).first
-      raise RefusedError, "There is no order with id #{id}." unless row
+      raise RefusedError, no_order(id) unless row
 
       Order.new(id: row[:id], customer_id: row[:customer_id], customer: row[:customer], status: row[:status],
                 placed_at: row[:placed_at], total: row[:total], lines: read_lines(connection, id))
@@ -119,6 +122,8 @@ module Bookshop
       end
       id
     end
+
+    def no_order(id) = "There is no order with id #{id}."
 
     def check_customer(connection, id)
       return if connection.exec_params(CUSTOMER_EXISTS, [id]).ntuples.positive?

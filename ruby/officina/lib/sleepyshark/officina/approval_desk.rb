@@ -20,9 +20,9 @@ module Sleepyshark
         @report.call(:approval_asked, ApprovalAsked.new(call:), span: step.span)
         step.asked
         approval = ask(approver, tool, call)
-        step.answered(approval.approved?, cancelled: @cancel.cancelled?)
+        step.answered(approval, cancelled: @cancel.cancelled?)
         @report.call(:approval_answered, ApprovalAnswered.new(call:, approved: approval.approved?),
-                     span: step.span, outcome: approval.approved? ? 'approved' : 'denied', detail: approval.reason)
+                     span: step.span, outcome: approval.answer, detail: approval.reason)
         reason(approval)
       end
 

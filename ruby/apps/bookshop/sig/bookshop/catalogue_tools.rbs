@@ -2,6 +2,7 @@ module Bookshop
   module CatalogueTools
     Input: singleton(Sleepyshark::Officina::Input)
     SEARCH: Sleepyshark::Officina::Tool::_Input
+    BOOK_ID: String
     BOOK: Sleepyshark::Officina::Tool::_Input
     RESTOCK: Sleepyshark::Officina::Tool::_Input
 

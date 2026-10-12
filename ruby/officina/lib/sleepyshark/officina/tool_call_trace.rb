@@ -8,7 +8,11 @@ module Sleepyshark
       # The error type of each outcome but :ok: an error result, or a write that did not run as its attempt could not
       # be audited.
       ERRORS = { error: 'tool_error', blocked: 'audit_unavailable' }.freeze
-      private_constant :ERRORS
+      # The attributes the call's span and measurements share.
+      TOOL_NAME = 'gen_ai.tool.name'
+      OUTCOME = 'officina.tool.outcome'
+      APPROVAL = 'officina.tool.approval'
+      private_constant :ERRORS, :TOOL_NAME, :OUTCOME, :APPROVAL
 
       # @return [ToolCall]
       attr_reader :call
@@ -20,7 +24,7 @@ module Sleepyshark
         @run = run
         @call = call
         @started = run.now
-        @span = run.start("execute_tool #{call.name}", attributes: started(tool))
+        @span = run.start('execute_tool', call.name, attributes: started(tool))
       end
 
       # Notes that the approver is being asked, now.
@@ -30,14 +34,14 @@ module Sleepyshark
 
       # Records the wait for the approver and its answer. A run cancelled while it waited records the wait only: the
       # approver had no time to answer.
-      def answered(approved, cancelled:)
+      def answered(approval, cancelled:)
         @span.set_attribute('officina.tool.approval_wait', @run.now - @asked)
-        return if cancelled && !approved
+        return if cancelled && !approval.approved?
 
-        answer = approved ? 'approved' : 'denied'
+        answer = approval.answer
         @run.add(:approvals, 1,
-                 { **@run.dimensions, 'gen_ai.tool.name' => @call.name, 'officina.tool.approval' => answer })
-        @span.set_attribute('officina.tool.approval', answer)
+                 { **@run.dimensions, TOOL_NAME => @call.name, APPROVAL => answer })
+        @span.set_attribute(APPROVAL, answer)
       end
 
       # Records the call's metrics and ends its span.
@@ -49,7 +53,7 @@ module Sleepyshark
       def finish(outcome, ran:, length:, truncated:, result:)
         @run.add(:tool_calls, 1, measured(outcome))
         @run.record(:tool_duration, @run.now - @started, measured(outcome))
-        @span.add_attributes({ 'officina.tool.outcome' => outcome.to_s, 'officina.tool.ran' => ran,
+        @span.add_attributes({ OUTCOME => outcome.to_s, 'officina.tool.ran' => ran,
                                'officina.tool.truncated' => truncated, 'officina.tool.result_length' => length,
                                **@run.content('gen_ai.tool.call.result', result) }.compact)
         @run.stop(@span, ERRORS[outcome])
@@ -59,13 +63,13 @@ module Sleepyshark
 
       # The attributes of a measurement of the call: new each time, as RunTrace#dimensions says.
       def measured(outcome)
-        { **@run.dimensions, 'gen_ai.tool.name' => @call.name, 'officina.tool.outcome' => outcome.to_s }
+        { **@run.dimensions, TOOL_NAME => @call.name, OUTCOME => outcome.to_s }
       end
 
       def source(tool) = tool&.source&.name || (tool&.memory? ? 'memory' : 'application')
 
       def started(tool)
-        { 'gen_ai.operation.name' => 'execute_tool', 'gen_ai.tool.name' => @call.name,
+        { TOOL_NAME => @call.name,
           'gen_ai.tool.call.id' => @call.id, 'gen_ai.tool.type' => 'function', 'officina.tool.source' => source(tool),
           'officina.tool.kind' => tool&.kind&.to_s, **@run.content('gen_ai.tool.call.arguments', @call.input) }.compact
       end

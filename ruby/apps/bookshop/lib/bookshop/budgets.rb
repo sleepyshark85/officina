@@ -7,16 +7,20 @@ module Bookshop
 
   # Each reply's and the session's budget.
   class Budgets
+    # The setting that names a reply's budget.
+    SETTING = 'BOOKSHOP_REPLY_BUDGET'
+    private_constant :SETTING
+
     # Reads BOOKSHOP_REPLY_BUDGET, a reply's budget in US dollars, such as 0.01 to show a budget stop; $0.50 if not
     # set or empty, as Go reads it. A session may spend $5.
     #
     # @param env [#fetch]
     # @raise [SettingError] when the setting is not an amount above zero
     def self.from(env)
-      setting = env.fetch('BOOKSHOP_REPLY_BUDGET', '')
+      setting = env.fetch(SETTING, '')
       reply = setting.empty? ? BigDecimal('0.50') : BigDecimal(setting, exception: false)
       unless reply&.positive?
-        raise SettingError, "BOOKSHOP_REPLY_BUDGET #{setting.inspect} is not an amount of US dollars above zero"
+        raise SettingError, "#{SETTING} #{setting.inspect} is not an amount of US dollars above zero"
       end
 
       new(reply:, session: BigDecimal(5))

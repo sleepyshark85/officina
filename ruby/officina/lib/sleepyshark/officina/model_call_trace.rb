@@ -5,11 +5,13 @@ module Sleepyshark
     # One model call's span and metrics, from its start to its end, retries included: what it streamed tells it its
     # usage, retries, time to first token, and what the provider did to shorten the conversation.
     class ModelCallTrace
+      OPERATION = 'chat'
+      private_constant :OPERATION
+
       def initialize(run, model)
         @run = run
         @started = run.now
-        @span = run.start("chat #{model}", kind: :client, attributes: { 'gen_ai.operation.name' => 'chat',
-                                                                        **run.dimensions })
+        @span = run.start(OPERATION, model, kind: :client, attributes: run.dimensions)
         @usage = Usage.new
         @retries = 0
       end
@@ -69,26 +71,28 @@ module Sleepyshark
         input = @usage.all_input
         tokens(input) unless @usage == Usage.new
         hit_ratio(input) if input.positive?
-        @run.record(:model_duration, @run.now - @started, { **chat, 'error.type' => error_type }.compact)
+        @run.record(:model_duration, @run.now - @started, { **chat, RunTrace::ERROR_TYPE => error_type }.compact)
       end
 
       def tokens(input)
-        @run.record(:tokens, input, { **chat, 'gen_ai.token.type' => 'input' })
-        @run.record(:tokens, @usage.output, { **chat, 'gen_ai.token.type' => 'output' })
-        @run.record(:cache_tokens, @usage.cache_read, { **@run.dimensions, 'officina.cache.type' => 'read' })
-        @run.record(:cache_tokens, @usage.cache_write, { **@run.dimensions, 'officina.cache.type' => 'write' })
+        { input:, output: @usage.output }.each do |type, count|
+          @run.record(:tokens, count, { **chat, 'gen_ai.token.type' => type.to_s })
+        end
+        { read: @usage.cache_read, write: @usage.cache_write }.each do |type, count|
+          @run.record(:cache_tokens, count, { **@run.dimensions, 'officina.cache.type' => type.to_s })
+        end
         @run.record(:cost, @run.cost(@usage), @run.dimensions)
       end
 
       def hit_ratio(input) = @run.record(:cache_hit_ratio, @usage.cache_read.fdiv(input), @run.dimensions)
-      def chat = { **@run.dimensions, 'gen_ai.operation.name' => 'chat' }
+      def chat = { **@run.dimensions, RunTrace::OPERATION_NAME => OPERATION }
 
       # The reply's finish reason, its stop's word or the provider's own for an unknown one, and its text if the host
       # opted in.
       def replied(reply)
         reason = reply.stop == :unknown ? reply.detail || 'unknown' : reply.stop.to_s
         { 'gen_ai.response.finish_reasons' => [reason],
-          **@run.content('gen_ai.output.messages', reply.text, role: 'assistant') }
+          **@run.output_content(reply.text) }
       end
     end
     private_constant :ModelCallTrace

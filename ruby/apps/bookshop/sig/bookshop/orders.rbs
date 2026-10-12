@@ -8,6 +8,7 @@ module Bookshop
     INSERT_LINE: String
     LOCK: String
     CANCEL: String
+    CANCELLED: String
 
     def initialize: (database: Database) -> void
     def find: (Integer id) -> Order
@@ -23,6 +24,7 @@ module Bookshop
     def read_lines: (PG::Connection connection, Integer id) -> Array[OrderLine]
     def insert: (PG::Connection connection, Integer customer_id, Array[Stock::_Line] lines,
                  Hash[Integer, BigDecimal] prices) -> Integer
+    def no_order: (Integer id) -> String
     def check_customer: (PG::Connection connection, Integer id) -> void
     def check_lines: (Array[Stock::_Line] lines) -> void
   end

@@ -15,7 +15,9 @@ module Bookshop
     ].freeze
     # The compose file's export server.
     COMPOSE_URL = 'http://localhost:18800/mcp'
-    private_constant :Mcp, :NAME, :ALLOWED, :COMPOSE_URL
+    # The setting that names the export server's endpoint.
+    SETTING = 'BOOKSHOP_EXPORTS'
+    private_constant :Mcp, :NAME, :ALLOWED, :COMPOSE_URL, :SETTING
 
     # Connects to the export server BOOKSHOP_EXPORTS names, its MCP endpoint, the compose file's if not set, and pins
     # its allowed tools.
@@ -26,16 +28,16 @@ module Bookshop
     # @raise [SettingError] when BOOKSHOP_EXPORTS is not an http or https URL
     # @raise [ExportServerError] when the server cannot be reached or lacks a tool of the allow-list
     def self.from(env)
-      url = env.fetch('BOOKSHOP_EXPORTS', COMPOSE_URL)
+      url = env.fetch(SETTING, COMPOSE_URL)
       return if url.empty?
 
       Mcp::ToolSource.new(Mcp::Server.new(name: NAME, url:), allowed: ALLOWED)
     rescue ArgumentError => e # the transport's refusal of the URL
-      raise SettingError, "BOOKSHOP_EXPORTS #{url.inspect} cannot be used: #{e.message}"
+      raise SettingError, "#{SETTING} #{url.inspect} cannot be used: #{e.message}"
     rescue Mcp::Error => e
       raise ExportServerError, "The export server at #{url} cannot be used: #{e.message}\n" \
                                'If it is not running, start it with ./start.sh (or pwsh -File start.ps1) in ' \
-                               'bookshop/; or set BOOKSHOP_EXPORTS to its endpoint, or to nothing to go ' \
+                               "bookshop/; or set #{SETTING} to its endpoint, or to nothing to go " \
                                'without exports.'
     end
   end

@@ -23,6 +23,12 @@ module Bookshop
 
     private_constant :INSERT, :SELECT
 
+    # The kind's word, as the table holds it: such as ToolStarted for :tool_started, as .NET writes it, so the table
+    # reads the same from every implementation.
+    #
+    # @param kind [Symbol] one of Sleepyshark::Officina::AuditEntry::KINDS
+    def self.word(kind) = kind.to_s.split('_').map(&:capitalize).join
+
     def initialize(database:)
       @database = database
       freeze
@@ -52,7 +58,7 @@ module Bookshop
     # The row's values, in the insert's order.
     def values(entry)
       [entry.time, entry.sequence, entry.run, entry.conversation, entry.agent, entry.memory_scope, entry.trace_id,
-       entry.span_id, kind(entry.kind), entry.tool, entry.call_id, entry.input, entry.outcome, entry.detail,
+       entry.span_id, AuditTable.word(entry.kind), entry.tool, entry.call_id, entry.input, entry.outcome, entry.detail,
        entry.duration, *spent(entry)]
     end
 
@@ -62,14 +68,14 @@ module Bookshop
       [usage&.input, usage&.output, usage&.cache_read, usage&.cache_write, entry.cost]
     end
 
-    # The kind as .NET writes it, such as ToolStarted, so the table reads the same from every implementation.
-    def kind(symbol) = symbol.to_s.split('_').map(&:capitalize).join
-
     def record(row)
-      AuditRecord.new(time: row[:time], run: row[:run], trace_id: row[:trace_id], kind: row[:kind], tool: row[:tool],
-                      outcome: row[:outcome], detail: row[:detail], duration: row[:duration], usage: usage(row),
-                      cost: row[:cost])
+      AuditRecord.new(time: row[:time], run: row[:run], trace_id: row[:trace_id], kind: kind(row[:kind]),
+                      tool: row[:tool], outcome: row[:outcome], detail: row[:detail], duration: row[:duration],
+                      usage: usage(row), cost: row[:cost])
     end
+
+    # The kind the word names, such as :tool_started for ToolStarted.
+    def kind(word) = word.gsub(/\B(?=[A-Z])/, '_').downcase.to_sym
 
     def usage(row)
       return unless row[:input_tokens]
