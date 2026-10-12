@@ -22,7 +22,7 @@ Layout (R2, R3); each gem has `lib/`, `sig/` (its RBS signatures), `test/` and i
 | `sig/` | The workspace's corrections to Ruby's core signatures, and the few signatures of the `anthropic` gem and `JSON::Fragment` that the Claude gem calls, which Steep reads with the gems' own |
 | `apps/bookshop/` | Bookshop Assistant (from Ruby S06), run by `exe/bookshop` |
 | `examples/` | `hello`, a live chat on Claude (with its test on a fake API); the GEN-06 samples `extraction`, `chat` and `background` (planned) |
-| `docs/` | Design notes ([`design.md`](docs/design.md): choices, and how Ruby realizes ARCHITECTURE's runtime model), [running and testing](docs/running-and-testing.md), spike notes and traceability |
+| `docs/` | Design notes ([`design.md`](docs/design.md): choices, and how Ruby realizes ARCHITECTURE's runtime model), [running and testing](docs/running-and-testing.md), the [test report](docs/test-report.md), spike notes and traceability |
 | `.rubocop.yml` (with `.rubocop_tests.yml`, which each `test/` inherits), `Steepfile`, `rbs_collection.yaml`, `Rakefile` | RuboCop, Steep and the gems' signatures it reads (R13, R18); the tasks |
 
 ## Build and test
