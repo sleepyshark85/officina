@@ -4,15 +4,22 @@ module Bookshop
       attr_reader name: String
       attr_reader argument: String?
       attr_reader help: String
-      attr_reader handler: Symbol
 
-      def self.new: (String name, String? argument, String help, Symbol handler) -> Command
+      def self.new: (String name, String? argument, String help) -> Command
 
       def usage: () -> String
+      def ===: (untyped other) -> bool
     end
 
     HELP_COMMAND: Command
-    COMMANDS: Hash[String, Command]
+    NEW: Command
+    SESSIONS: Command
+    RESUME: Command
+    COST: Command
+    AUDIT: Command
+    MEMORY: Command
+    QUIT: Command
+    COMMANDS: Array[Command]
     COMMAND_START: String
     HELP_HINT: String
     USAGE_WIDTH: Integer
@@ -37,16 +44,6 @@ module Bookshop
 
     def ask_staff_member: () -> String?
     def converse: (Session session) -> Session
-    def command: (String line, Session session) -> Session
-    def help: (String _argument, Session session) -> Session
-    def start_new: (String _argument, Session session) -> Session
-    def list_sessions: (String _argument, Session session) -> Session
-    def resume: (String id, Session session) -> Session
-    def cost: (String _argument, Session session) -> Session
-    def memory: (String _argument, Session session) -> Session
-    def quit: (String _argument, Session _session) -> bot
-    def audit: (String id, Session session) -> Session
-    def answered: (Session session) { () -> void } -> Session
     def reply: (Session session, String message) -> void
   end
 end

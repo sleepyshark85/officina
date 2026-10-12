@@ -15,9 +15,11 @@ module Sleepyshark
         INPUT_SCHEMA = 'inputSchema'
         DESCRIPTION = 'description'
         TYPE = 'type'
-        # The member of a text item that holds its text, and its type.
+        # The member of a text item that holds its text, and the type that says an item is text.
         TEXT = 'text'
-        private_constant :TOOLS, :NEXT_CURSOR, :CONTENT, :IS_ERROR, :NAME, :INPUT_SCHEMA, :DESCRIPTION, :TYPE, :TEXT
+        TEXT_TYPE = 'text'
+        private_constant :TOOLS, :NEXT_CURSOR, :CONTENT, :IS_ERROR, :NAME, :INPUT_SCHEMA, :DESCRIPTION, :TYPE, :TEXT,
+                         :TEXT_TYPE
         # The tools on a page of tools/list, a Wire::Response, each schema as the server wrote it; nil when it cannot
         # be read.
         def self.tools(page)
@@ -61,7 +63,7 @@ module Sleepyshark
 
           type, text = item.values_at(TYPE, TEXT)
           case type
-          when TEXT then text if text.instance_of?(String)
+          when TEXT_TYPE then text if text.instance_of?(String)
           when String then "[#{type} content]"
           end
         end

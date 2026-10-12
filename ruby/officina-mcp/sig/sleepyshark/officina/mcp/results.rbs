@@ -11,6 +11,7 @@ module Sleepyshark
         DESCRIPTION: String
         TYPE: String
         TEXT: String
+        TEXT_TYPE: String
 
         def self.tools: (Wire::Response page) -> Array[Tool]?
 

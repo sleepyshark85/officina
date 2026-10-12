@@ -13,7 +13,12 @@ module Sleepyshark
         UNSUPPORTED = %w[minimum maximum exclusiveMinimum exclusiveMaximum multipleOf maxItems].freeze
         ADDITIONAL_PROPERTIES = 'additionalProperties'
         PROPERTIES = 'properties'
-        private_constant :UNSUPPORTED, :ADDITIONAL_PROPERTIES, :PROPERTIES
+        MIN_ITEMS = 'minItems'
+        ITEMS = 'items'
+        ANY_OF = 'anyOf'
+        TYPE = 'type'
+        OBJECT = 'object'
+        private_constant :UNSUPPORTED, :ADDITIONAL_PROPERTIES, :PROPERTIES, :MIN_ITEMS, :ITEMS, :ANY_OF, :TYPE, :OBJECT
 
         # @param schema [String] the request's output schema, JSON text
         # @return [Hash] the output format of the request's output config
@@ -36,19 +41,19 @@ module Sleepyshark
         end
 
         # Whether the API rejects the keyword with that value.
-        def self.rejected?(keyword, value) = UNSUPPORTED.include?(keyword) || (keyword == 'minItems' && value > 1)
+        def self.rejected?(keyword, value) = UNSUPPORTED.include?(keyword) || (keyword == MIN_ITEMS && value > 1)
 
         # A keyword's value with the schemas it holds adjusted.
         def self.inner(keyword, value)
           case keyword
           when PROPERTIES then value.transform_values { adjust(it) }
-          when 'items' then adjust(value)
-          when 'anyOf' then value.map { adjust(it) }
+          when ITEMS then adjust(value)
+          when ANY_OF then value.map { adjust(it) }
           else value
           end
         end
 
-        def self.object?(schema) = schema.key?(PROPERTIES) || Array(schema['type']).include?('object')
+        def self.object?(schema) = schema.key?(PROPERTIES) || Array(schema[TYPE]).include?(OBJECT)
         private_class_method :adjust, :rejected?, :inner, :object?
       end
       private_constant :OutputFormat

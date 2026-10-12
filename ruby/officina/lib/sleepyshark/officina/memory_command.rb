@@ -37,14 +37,14 @@ module Sleepyshark
 
       def view
         text = @files.read(@at)
-        return MemoryView.file(@path, text, @input['view_range']&.map(&:to_int)) if text
+        return MemoryView.file(@path, text, @input[MemoryInput::VIEW_RANGE]&.map(&:to_int)) if text
         return failure(missing) unless @files.directory?(@at)
 
         MemoryView.listing(@files.under(@at), @at)
       end
 
       def create
-        text = @input['file_text']
+        text = @input[MemoryInput::FILE_TEXT]
         return failure('Error: Parameter `file_text` is required for command: create') unless text
         return cannot_create('it is a directory.') if @files.directory?(@at)
 
@@ -55,7 +55,7 @@ module Sleepyshark
       end
 
       def str_replace
-        old = @input['old_str']
+        old = @input[MemoryInput::OLD_STR]
         return failure('Error: Parameter `old_str` is required for command: str_replace') if old.nil? || old.empty?
 
         text = @files.read(@at)
@@ -75,14 +75,14 @@ module Sleepyshark
       end
 
       def replace(text, start, old)
-        new_text = @input['new_str'] || ''
+        new_text = @input[MemoryInput::NEW_STR] || ''
         edited = "#{text[0, start]}#{new_text}#{text[(start + old.length)..]}"
         write(edited) || MemoryView.snippet(@path, edited, start, new_text.count("\n"))
       end
 
       def insert
-        line = @input['insert_line']&.to_int
-        text = @input['insert_text']
+        line = @input[MemoryInput::INSERT_LINE]&.to_int
+        text = @input[MemoryInput::INSERT_TEXT]
         unless line && text
           return failure('Error: Parameters `insert_line` and `insert_text` are required for command: insert')
         end
@@ -129,7 +129,6 @@ module Sleepyshark
       end
 
       # Writes the file at the command's path; the refusal, or nil once written.
-      # A named parameter, not it, which mutant's unparser cannot read back inside an interpolation.
       def write(text) = @files.write(@at, text)&.then { |refused| failure("Error: #{@path} #{refused}") }
 
       def missing = "The path #{@path} does not exist. Please provide a valid path."

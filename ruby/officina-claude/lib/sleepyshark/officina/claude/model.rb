@@ -19,13 +19,9 @@ module Sleepyshark
       # or an InvalidRequestError.
       class Model
         EFFORTS = %i[low medium high xhigh max].freeze
-        # The cache lifetime of five minutes, as the API names it.
-        SHORT_CACHE = '5m'
-        # The cache lifetime of an hour, as the API names it, for reads further apart (a prefix many conversations
-        # share, users who reply slowly); its writes cost more.
-        LONG_CACHE = '1h'
-        # The cache lifetimes, the shorter first.
-        CACHE_LIFETIMES = [SHORT_CACHE, LONG_CACHE].freeze
+        # The cache lifetimes as the API names them, the shorter first. The longer one is for reads further apart (a
+        # prefix many conversations share, users who reply slowly); its writes cost more.
+        SHORT_CACHE, LONG_CACHE = CACHE_LIFETIMES = %w[5m 1h].freeze
         # Attempts per call, the first included.
         ATTEMPTS = 5
         # Waits up to +seconds+, ending early once +cancel+ is cancelled. The callback it leaves with the cancellation,
@@ -167,10 +163,12 @@ module Sleepyshark
         # A message as the API takes it, in the canonical form, which keeps a stored block's bytes. An operator
         # message is a system message mid-conversation, its text the content.
         def message(message)
-          fields = if message.role == :operator then { role: 'system', content: message.text }
-                   else { role: message.role, content: message.blocks.map { content(it) } }
-                   end
-          Block.canonical(JSON.generate(fields))
+          json = if message.role == :operator
+                   JSON.generate({ role: 'system', content: message.text })
+                 else
+                   JSON.generate({ role: message.role, content: message.blocks.map { content(it) } })
+                 end
+          Block.canonical(json)
         end
 
         # A block with raw JSON goes as it is; a tool's result as a tool_result block; any other as a text block.

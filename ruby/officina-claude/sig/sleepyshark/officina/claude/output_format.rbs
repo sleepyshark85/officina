@@ -5,6 +5,11 @@ module Sleepyshark
         UNSUPPORTED: Array[String]
         ADDITIONAL_PROPERTIES: String
         PROPERTIES: String
+        MIN_ITEMS: String
+        ITEMS: String
+        ANY_OF: String
+        TYPE: String
+        OBJECT: String
 
         def self.of: (String schema) -> Hash[Symbol, untyped]
 

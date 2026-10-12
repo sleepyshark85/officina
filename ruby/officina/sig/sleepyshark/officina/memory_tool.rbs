@@ -16,6 +16,8 @@ module Sleepyshark
 
       def command: (_MemoryStore store, String? scope, Hash[String, untyped] input) -> (String | ToolFailure)
 
+      def paths_of: (Symbol name, Hash[String, untyped] input) -> Array[String]
+
       def command_of: (Hash[String, untyped] input) -> Symbol
 
       def outside: (String? path) -> ToolFailure

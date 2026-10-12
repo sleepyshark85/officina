@@ -53,7 +53,7 @@ module Sleepyshark
         raise Error, 'The memory tool needs the memory scope of a run' unless scope
 
         name = command_of(input)
-        named = name == :rename ? input.values_at('old_path', 'new_path') : [input['path']]
+        named = paths_of(name, input)
         # @type var scoped: Hash[String, String]
         scoped = {}
         named.each do |path|
@@ -65,8 +65,15 @@ module Sleepyshark
         MemoryCommand.new(MemoryFiles.new(store, scope), input, named, scoped).run(name)
       end
 
+      # The paths the command names: a rename's old and new ones, else its one.
+      def paths_of(name, input)
+        return [input[MemoryInput::PATH]] unless name == :rename
+
+        input.values_at(MemoryInput::OLD_PATH, MemoryInput::NEW_PATH)
+      end
+
       # The input's command, as a Symbol.
-      def command_of(input) = input.fetch('command').to_sym
+      def command_of(input) = input.fetch(MemoryInput::COMMAND).to_sym
 
       def outside(path)
         ToolFailure.new(message: "Error: The path #{path || '(none)'} is not a valid path under #{ROOT}.")
