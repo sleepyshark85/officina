@@ -7,9 +7,7 @@ module Bookshop
   # in theirs.
   class StaffMemory
     Officina = Sleepyshark::Officina
-    # Where the memory tool shows the model its files, and /memory shows the staff member.
-    ROOT = '/memories'
-    private_constant :Officina, :ROOT
+    private_constant :Officina
 
     # @return [String] the staff member's memory scope
     def self.scope(staff_member) = staff_member.downcase
@@ -39,7 +37,7 @@ module Bookshop
 
     # The file's path as the model sees it, then each line of its text, without the blank ones it ends with.
     def file(scope, path)
-      ["#{ROOT}/#{path}", *@store.read(scope, path).to_s.split("\n").map { "  #{it}" }]
+      ["#{Officina::MemoryTool::ROOT}/#{path}", *@store.read(scope, path).to_s.split("\n").map { "  #{it}" }]
     end
   end
   private_constant :StaffMemory

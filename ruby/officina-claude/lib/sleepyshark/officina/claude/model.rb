@@ -19,9 +19,13 @@ module Sleepyshark
       # or an InvalidRequestError.
       class Model
         EFFORTS = %i[low medium high xhigh max].freeze
-        # Cache lifetimes, as the API names them. The longer one is for reads further apart (a prefix many
-        # conversations share, users who reply slowly); its writes cost more.
-        CACHE_LIFETIMES = %w[5m 1h].freeze
+        # The cache lifetime of five minutes, as the API names it.
+        SHORT_CACHE = '5m'
+        # The cache lifetime of an hour, as the API names it, for reads further apart (a prefix many conversations
+        # share, users who reply slowly); its writes cost more.
+        LONG_CACHE = '1h'
+        # The cache lifetimes, the shorter first.
+        CACHE_LIFETIMES = [SHORT_CACHE, LONG_CACHE].freeze
         # Attempts per call, the first included.
         ATTEMPTS = 5
         # Waits up to +seconds+, ending early once +cancel+ is cancelled. The callback it leaves with the cancellation,
@@ -58,8 +62,8 @@ module Sleepyshark
         # mutant:disable -- its three survivors change nothing the API or a test can see: the SDK adds the cache
         #   control's only type, ephemeral, when it is left out; a max_retries of -1 retries no more than 0; and the
         #   settings hash is read only by this frozen model
-        def initialize(name:, effort:, max_output_tokens: 64_000, prefix_cache: '5m', conversation_cache: '5m',
-                       api_key: nil, base_url: nil, wait: WAIT)
+        def initialize(name:, effort:, max_output_tokens: 64_000, prefix_cache: SHORT_CACHE,
+                       conversation_cache: SHORT_CACHE, api_key: nil, base_url: nil, wait: WAIT)
           check(name, effort, max_output_tokens, prefix_cache, conversation_cache)
           cache = prefix_cache == conversation_cache ? prefix_cache : "#{prefix_cache}/#{conversation_cache}"
           @settings = -"claude model=#{name} effort=#{effort} max_tokens=#{max_output_tokens} cache=#{cache} " \
@@ -127,7 +131,7 @@ module Sleepyshark
             raise Error, "Claude's cache lifetimes are #{CACHE_LIFETIMES.join(' or ')}, not #{prefix.inspect} and " \
                          "#{conversation.inspect}"
           end
-          return unless prefix == '5m' && conversation == '1h'
+          return unless prefix == SHORT_CACHE && conversation == LONG_CACHE
 
           raise Error, "Claude's prefix cache may not be shorter than its conversation cache"
         end
@@ -163,12 +167,10 @@ module Sleepyshark
         # A message as the API takes it, in the canonical form, which keeps a stored block's bytes. An operator
         # message is a system message mid-conversation, its text the content.
         def message(message)
-          json = if message.role == :operator
-                   JSON.generate({ role: 'system', content: message.text })
-                 else
-                   JSON.generate({ role: message.role, content: message.blocks.map { content(it) } })
-                 end
-          Block.canonical(json)
+          fields = if message.role == :operator then { role: 'system', content: message.text }
+                   else { role: message.role, content: message.blocks.map { content(it) } }
+                   end
+          Block.canonical(JSON.generate(fields))
         end
 
         # A block with raw JSON goes as it is; a tool's result as a tool_result block; any other as a text block.

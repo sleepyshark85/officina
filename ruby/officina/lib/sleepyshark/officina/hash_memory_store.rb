@@ -53,8 +53,8 @@ module Sleepyshark
       def rename(scope, path, new_path)
         MemoryRules.check(scope, path, new_path)
         @lock.synchronize do
-          text = @files.fetch([scope, path]) { raise Error, "There is no memory file #{path}." }
-          raise Error, "There is already a memory file #{new_path}." if @files.key?([scope, new_path])
+          text = @files.fetch([scope, path]) { raise MemoryRules.no_file(path) }
+          raise MemoryRules.file_taken(new_path) if @files.key?([scope, new_path])
 
           refuse_clash(scope, new_path)
           @files.delete([scope, path])
@@ -67,10 +67,10 @@ module Sleepyshark
       # Refuses a path that is a directory of the scope's files, or that runs through one of them.
       def refuse_clash(scope, path)
         paths = @files.each_key.filter_map { |at, other| other if at == scope }
-        raise Error, "#{path} is a memory directory." if paths.any? { |other| other.start_with?("#{path}/") }
+        raise MemoryRules.directory(path) if paths.any? { |other| other.start_with?("#{path}/") }
 
         file = paths.find { |other| path.start_with?("#{other}/") }
-        raise Error, "#{path} runs through the memory file #{file}." if file
+        raise MemoryRules.through_file(path, file) if file
       end
     end
   end

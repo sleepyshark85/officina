@@ -14,6 +14,10 @@ module Sleepyshark
       def self.check: (String scope, *String paths) -> void
 
       def self.check_text: (String text) -> void
+      def self.no_file: (String path) -> Error
+      def self.file_taken: (String path) -> Error
+      def self.directory: (String path) -> Error
+      def self.through_file: (String path, String file) -> Error
 
       private
 

@@ -3,6 +3,8 @@ module Sleepyshark
     module Claude
       module OutputFormat
         UNSUPPORTED: Array[String]
+        ADDITIONAL_PROPERTIES: String
+        PROPERTIES: String
 
         def self.of: (String schema) -> Hash[Symbol, untyped]
 

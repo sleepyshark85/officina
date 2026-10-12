@@ -1,17 +1,16 @@
 module Sleepyshark
   module Officina
     class MemoryCommand
-      ROOT: String
-
       @files: MemoryFiles
       @input: Hash[String, untyped]
       @path: String
+      @new_path: String
       @at: String
       @within: Hash[String, String]
 
-      def initialize: (MemoryFiles files, Hash[String, untyped] input, String path, Hash[String, String] within) -> void
+      def initialize: (MemoryFiles files, Hash[String, untyped] input, Array[String] paths, Hash[String, String] within) -> void
 
-      def run: () -> (String | ToolFailure)
+      def run: (Symbol command) -> (String | ToolFailure)
 
       private
 
@@ -33,11 +32,19 @@ module Sleepyshark
 
       def rename: () -> (String | ToolFailure)
 
-      def rename_problem: (String new_path, String to) -> String?
+      def rename_problem: (String to) -> String?
 
       def write: (String text) -> ToolFailure?
 
       def missing: () -> String
+
+      def no_path: () -> String
+
+      def file_in_the_way: (String file) -> String
+
+      def root_kept: (String done) -> String
+
+      def cannot_create: (String why) -> ToolFailure
 
       def failure: (String message) -> ToolFailure
     end

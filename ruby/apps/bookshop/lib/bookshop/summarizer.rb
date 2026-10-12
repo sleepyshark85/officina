@@ -25,7 +25,7 @@ module Bookshop
     # Claude Opus 5.5 at low effort, as a short, typed answer needs little. The API key comes from ANTHROPIC_API_KEY,
     # where the SDK finds it.
     def self.claude
-      Officina::Claude::Model.new(name: 'claude-opus-5-5', effort: :low, max_output_tokens: 4_000)
+      Officina::Claude::Model.new(name: CLAUDE_MODEL, effort: :low, max_output_tokens: 4_000)
     end
 
     # @param model [Sleepyshark::Officina::_Model] one with a price, as each summary has a cost budget

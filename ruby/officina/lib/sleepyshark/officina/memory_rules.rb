@@ -45,6 +45,22 @@ module Sleepyshark
           raise Error, 'Memory text must be a valid UTF-8 string.' unless utf8?(text)
         end
 
+        # The error a store raises to rename a file that is not there; every store words its refusals the same.
+        # @return [Error]
+        def no_file(path) = Error.new("There is no memory file #{path}.")
+
+        # The error a store raises to rename a file onto another.
+        # @return [Error]
+        def file_taken(path) = Error.new("There is already a memory file #{path}.")
+
+        # The error a store raises to write or rename a file onto a directory of the scope's files.
+        # @return [Error]
+        def directory(path) = Error.new("#{path} is a memory directory.")
+
+        # The error a store raises to write or rename a file under +file+, one of the scope's files.
+        # @return [Error]
+        def through_file(path, file) = Error.new("#{path} runs through the memory file #{file}.")
+
         private
 
         def utf8?(text)

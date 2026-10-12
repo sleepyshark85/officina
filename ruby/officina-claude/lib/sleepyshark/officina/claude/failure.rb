@@ -14,12 +14,16 @@ module Sleepyshark
         AUTHENTICATION_STATUSES = [401, 403].freeze
         # Seconds: the longest wait a Retry-After may ask for.
         LONGEST_WAIT = 30.0
+        # The header in which the API asks for a wait before the next attempt.
+        RETRY_AFTER = 'retry-after'
+        # What the message of the API's answer to a prompt longer than the context window says, in lower case.
+        PROMPT_TOO_LONG = 'prompt is too long'
 
         # The API rejected the prompt, given as its invalid request, as longer than the context window. It gives that
         # no type of its own, only a message saying so: the one place this gem reads an error's text.
         def self.prompt_too_long?(answer)
           case answer.body
-          in { error: { message: String => message } } then message.downcase.include?('prompt is too long')
+          in { error: { message: String => message } } then message.downcase.include?(PROMPT_TOO_LONG)
           else false
           end
         end
@@ -74,7 +78,7 @@ module Sleepyshark
 
         # The API sends Retry-After in seconds; a date, which it does not send, counts as no wait asked.
         def retry_after
-          Integer(@answer&.headers&.fetch('retry-after', nil), exception: false)
+          Integer(@answer&.headers&.fetch(RETRY_AFTER, nil), exception: false)
         end
       end
       private_constant :Failure

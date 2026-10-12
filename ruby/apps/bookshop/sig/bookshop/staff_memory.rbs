@@ -1,7 +1,6 @@
 module Bookshop
   class StaffMemory
     Officina: singleton(Sleepyshark::Officina)
-    ROOT: String
 
     @store: Sleepyshark::Officina::_MemoryStore
 

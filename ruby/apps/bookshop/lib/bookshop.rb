@@ -70,6 +70,12 @@ module Bookshop
   COMPOSE_DATABASE = 'postgres://bookshop:shelf-demo-41@localhost:5432/bookshop'
   # The compose file's telemetry dashboard.
   COMPOSE_DASHBOARD = 'http://localhost:18888'
+  # The settings that name them.
+  DATABASE_SETTING = 'BOOKSHOP_DATABASE'
+  DASHBOARD_SETTING = 'BOOKSHOP_DASHBOARD'
+  # The Claude model every agent of the application runs on.
+  CLAUDE_MODEL = 'claude-opus-5-5'
+  private_constant :DATABASE_SETTING, :DASHBOARD_SETTING, :CLAUDE_MODEL
 
   # The composition root: builds the application from its boundaries and settings. It connects to the export server
   # and reads its tools; nothing connects to the database or the model until the first reply needs it, nor to the
@@ -100,7 +106,7 @@ module Bookshop
     budgets = Budgets.from(env)
     # Before the telemetry starts, which a failure here would leave running.
     exports = Exports.from(env)
-    url = env.fetch('BOOKSHOP_DATABASE', COMPOSE_DATABASE)
+    url = env.fetch(DATABASE_SETTING, COMPOSE_DATABASE)
     database = Database.new(url)
     mode = ChatAgent.mode(demo:)
     model ||= mode.claude
@@ -113,7 +119,7 @@ module Bookshop
       approver: approvals, audit_sink: audit, secrets: [Database.password(url)].compact, clock:,
       telemetry: telemetry.officina, context_management: mode.context_management
     )
-    view = AuditView.new(table: audit, dashboard: env.fetch('BOOKSHOP_DASHBOARD', COMPOSE_DASHBOARD))
+    view = AuditView.new(table: audit, dashboard: env.fetch(DASHBOARD_SETTING, COMPOSE_DASHBOARD))
     console = Console.new(agent:, approvals:, input:, output:, clock:, store: SessionStore.new(database:),
                           budgets:, audit: view, memory: StaffMemory.new(memory), telemetry:, demo:,
                           summarizer: summarizer && Summarizer.new(model: summarizer, clock:, telemetry:))

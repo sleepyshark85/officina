@@ -1,6 +1,9 @@
 module Bookshop
   COMPOSE_DATABASE: String
   COMPOSE_DASHBOARD: String
+  DATABASE_SETTING: String
+  DASHBOARD_SETTING: String
+  CLAUDE_MODEL: String
 
   def self.build: (input: IO, output: IO, ?model: Sleepyshark::Officina::_Model?,
                    ?summarizer: Sleepyshark::Officina::_Model?, ?memory: Sleepyshark::Officina::_MemoryStore,

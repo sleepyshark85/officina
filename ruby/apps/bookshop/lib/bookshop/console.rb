@@ -8,19 +8,34 @@ module Bookshop
   # Each reply is traced and logged; /audit shows a session's audit trail. Each staff member has their own memory,
   # which /memory shows.
   class Console
-    HELP = <<~TEXT.chomp
-      Commands:
-        /help          Show this help.
-        /new           Start a new session.
-        /sessions      List the latest sessions.
-        /resume <id>   Go on with the session with that id.
-        /cost          Show this session's tokens and cost.
-        /audit [<id>]  Show the audit trail of this session, or of the session with that id.
-        /memory        Show what the assistant remembers for you.
-        /quit          Leave the assistant.
-      Anything else is a message to the assistant. Ctrl+C stops a reply in progress.
-    TEXT
-    private_constant :HELP
+    Command = Data.define(:name, :argument, :help, :handler)
+
+    # One command: its name, the argument it takes (nil for none) as its help line shows it, and the private method
+    # that answers it, given the argument and the session in use, and returning the session to go on with.
+    class Command
+      # The command as its help line names it, such as "/resume <id>".
+      def usage = [name, *argument].join(' ')
+    end
+
+    # The commands, by name, in the order the help lists them.
+    COMMANDS = [
+      Command.new('/help', nil, 'Show this help.', :help),
+      Command.new('/new', nil, 'Start a new session.', :start_new),
+      Command.new('/sessions', nil, 'List the latest sessions.', :list_sessions),
+      Command.new('/resume', '<id>', 'Go on with the session with that id.', :resume),
+      Command.new('/cost', nil, "Show this session's tokens and cost.", :cost),
+      Command.new('/audit', '[<id>]', 'Show the audit trail of this session, or of the session with that id.', :audit),
+      Command.new('/memory', nil, 'Show what the assistant remembers for you.', :memory),
+      Command.new('/quit', nil, 'Leave the assistant.', :quit)
+    ].to_h { [it.name, it] }.freeze
+    # What starts a command, rather than a message.
+    COMMAND_START = '/'
+    HELP_HINT = "Type #{COMMANDS.fetch('/help').name} for commands.".freeze
+    # Each command's help line, its usage padded to line the help lines up two spaces after the longest.
+    USAGE_WIDTH = COMMANDS.values.map { it.usage.length }.max + 2
+    HELP = ['Commands:', *COMMANDS.values.map { "  #{it.usage.ljust(USAGE_WIDTH)}#{it.help}" },
+            'Anything else is a message to the assistant. Ctrl+C stops a reply in progress.'].join("\n").freeze
+    private_constant :Command, :COMMANDS, :COMMAND_START, :HELP_HINT, :USAGE_WIDTH, :HELP
 
     # @param agent [Sleepyshark::Officina::Agent] the chat agent, whose approver is +approvals+
     # @param approvals [Approvals]
@@ -52,7 +67,7 @@ module Bookshop
     # the end of the input.
     def run
       @interrupts.watch do
-        @terminal.write_line('Bookshop Assistant. Type /help for commands.')
+        @terminal.write_line("Bookshop Assistant. #{HELP_HINT}")
         @terminal.write_line(ChatAgent.demo_announcement) if @demo
         staff_member = ask_staff_member
         @sessions.leave(converse(@sessions.start(staff_member))) if staff_member
@@ -79,45 +94,47 @@ module Bookshop
 
     # Converses until /quit or the end of the input, and returns the session in use then.
     def converse(session)
-      while (line = @terminal.read('you> '))
-        case line.strip
-        when '' then next
-        when '/quit' then return session
-        when %r{\A/} then session = command(line.strip, session)
-        else reply(session, line)
+      catch(:quit) do
+        while (line = @terminal.read('you> '))
+          text = line.strip
+          if text.start_with?(COMMAND_START) then session = command(text, session)
+          elsif !text.empty? then reply(session, line)
+          end
         end
       end
       session
     end
 
-    # Answers the command and returns the session to go on with.
-    def command(command, session)
-      case command
-      when '/new' then @sessions.start_new(session)
-      when %r{\A/resume(\s|\z)} then @sessions.resume(argument(command), session)
-      else
-        answer(command, session)
-        session
-      end
+    # Answers the command line, and returns the session to go on with; /quit throws :quit. A command that takes no
+    # argument is unknown with one.
+    def command(line, session)
+      name, argument = line.split(/\s+/, 2)
+      argument = argument.to_s
+      command = COMMANDS[name]
+      return method(command.handler).call(argument, session) if command && (command.argument || argument.empty?)
+
+      @terminal.write_line("Unknown command #{line}. #{HELP_HINT}")
+      session
     end
 
-    # Answers a command that goes on with the session in use.
-    def answer(command, session)
-      case command
-      when '/sessions' then @sessions.list(session)
-      when '/cost' then @sessions.cost(session)
-      when '/help' then @terminal.write_line(HELP)
-      when '/memory' then @terminal.write_line(@memory.show(session.staff_member))
-      when %r{\A/audit(\s|\z)} then @terminal.write_line(@audit.show(audited(command, session)))
-      else @terminal.write_line("Unknown command #{command}. Type /help for commands.")
-      end
+    def help(_argument, session) = answered(session) { @terminal.write_line(HELP) }
+    def start_new(_argument, session) = @sessions.start_new(session)
+    def list_sessions(_argument, session) = answered(session) { @sessions.list(session) }
+    def resume(id, session) = @sessions.resume(id, session)
+    def cost(_argument, session) = answered(session) { @sessions.cost(session) }
+    def memory(_argument, session) = answered(session) { @terminal.write_line(@memory.show(session.staff_member)) }
+    def quit(_argument, _session) = throw(:quit)
+
+    # Shows the audit trail of the session with the id, the session in use's if it names none.
+    def audit(id, session)
+      answered(session) { @terminal.write_line(@audit.show(id.empty? ? session.id : id)) }
     end
 
-    # The id of the session an /audit command names, the session in use's if it names none.
-    def audited(command, session) = argument(command).then { it.empty? ? session.id : it }
-
-    # What follows the command's name, trimmed.
-    def argument(command) = command.split(/\s+/, 2)[1].to_s.strip
+    # Runs the block, which answers a command that goes on with the session in use, and returns that session.
+    def answered(session)
+      yield
+      session
+    end
 
     def reply(session, message)
       cancel = Sleepyshark::Officina::Cancellation.new

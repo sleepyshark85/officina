@@ -5,6 +5,8 @@ module Sleepyshark
         include _Model
 
         EFFORTS: Array[Symbol]
+        SHORT_CACHE: String
+        LONG_CACHE: String
         CACHE_LIFETIMES: Array[String]
         ATTEMPTS: Integer
         WAIT: ^(Float seconds, Cancellation cancel) -> void
