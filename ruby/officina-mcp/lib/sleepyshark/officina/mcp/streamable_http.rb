@@ -138,7 +138,8 @@ module Sleepyshark
         # A connection of the request's own, opened on its thread.
         def connection
           http = limited_connection(@host, @uri.port)
-          http.use_ssl = @uri.is_a?(URI::HTTPS)
+          # instance_of?, as URI::HTTPS has no subclass for is_a? to take in.
+          http.use_ssl = @uri.instance_of?(URI::HTTPS)
           http
         end
 
@@ -170,8 +171,10 @@ module Sleepyshark
         end
 
         # A 404 to a request in a session means the server ended the session; to one before, that the URL is wrong.
+        # instance_of?, as Net::HTTPNotFound has no subclass for is_a? to take in.
         def raise_unless_ok(response, request)
-          raise Error, 'the server ended the session' if response.is_a?(Net::HTTPNotFound) && request.key?(SESSION)
+          ended = response.instance_of?(Net::HTTPNotFound) && request.key?(SESSION)
+          raise Error, 'the server ended the session' if ended
           return if response.is_a?(Net::HTTPSuccess)
 
           raise Error, "the server answered HTTP #{response.code} #{response.message}"

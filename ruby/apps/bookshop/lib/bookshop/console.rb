@@ -96,8 +96,9 @@ module Bookshop
 
     # Converses until /quit or the end of the input, and returns the session in use then. A command that takes no
     # argument is unknown with one; /audit with no id shows the session in use's trail.
-    # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity -- one branch per command:
-    #   a flat dispatch reads better than one split across methods at an arbitrary branch
+    # One branch per command: a flat dispatch reads better than one split across methods at an arbitrary branch.
+    # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity -- one branch per command, as said above
+    # rubocop:disable Metrics/MethodLength, Metrics/PerceivedComplexity -- one branch per command, as said above
     def converse(session)
       while (line = @terminal.read('you> '))
         name, argument = line.strip.split(/\s+/, 2)
