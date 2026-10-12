@@ -129,7 +129,8 @@ module Sleepyshark
       end
 
       # Writes the file at the command's path; the refusal, or nil once written.
-      def write(text) = @files.write(@at, text)&.then { failure("Error: #{@path} #{it}") }
+      # A named parameter, not it, which mutant's unparser cannot read back inside an interpolation.
+      def write(text) = @files.write(@at, text)&.then { |refused| failure("Error: #{@path} #{refused}") }
 
       def missing = "The path #{@path} does not exist. Please provide a valid path."
       def no_path = "Error: The path #{@path} does not exist"

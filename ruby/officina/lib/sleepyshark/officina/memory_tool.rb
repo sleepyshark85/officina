@@ -43,7 +43,7 @@ module Sleepyshark
       def memory? = true
 
       # A view only reads, so it never needs approval.
-      def needs_approval_for?(input) = super && command_of(JSON.parse(input)) != :view
+      def needs_approval_for?(input) = super && !(command_of(JSON.parse(input)) in :view)
 
       private
 

@@ -69,6 +69,8 @@ module Sleepyshark
 
         private
 
+        # mutant:disable -- its one survivor checks for an instance of ConfigurationError itself, which is the same
+        #   check, as the SDK has no subclass of it
         def authentication?
           answer = @answer
           return @failure.is_a?(Anthropic::Errors::ConfigurationError) unless answer

@@ -52,7 +52,8 @@ module Sleepyshark
       def self.patterns_in(schema, path)
         return {} if [true, false].include?(schema)
 
-        refuse(path, 'a schema must be an object or a boolean') unless schema.is_a?(Hash)
+        # JSON.parse makes each object a Hash itself, never a subclass.
+        refuse(path, 'a schema must be an object or a boolean') unless schema.instance_of?(Hash)
         schema.map { |keyword, value| check_keyword(keyword, value, "#{path}/#{keyword}") }.reduce({}, :merge)
       end
 
@@ -62,14 +63,15 @@ module Sleepyshark
         refuse(at, problem) if problem
         return { value => compile(value, at) } if keyword == PATTERN
 
-        subschemas(keyword, value).map { |name, subschema| patterns_in(subschema, "#{at}#{name}") }.reduce({}, :merge)
+        subschemas(keyword, value, at).map { |path, subschema| patterns_in(subschema, path) }.reduce({}, :merge)
       end
 
-      def self.subschemas(keyword, value)
+      # The subschemas the keyword at that path holds, each with its own path.
+      def self.subschemas(keyword, value, at)
         case keyword
-        when PROPERTIES then value.map { |name, schema| ["/#{name}", schema] }
-        when ANY_OF then value.each_with_index.map { |schema, index| ["/#{index}", schema] }
-        when ADDITIONAL_PROPERTIES, ITEMS then [['', value]]
+        when PROPERTIES then value.map { |name, schema| ["#{at}/#{name}", schema] }
+        when ANY_OF then value.each_with_index.map { |schema, index| ["#{at}/#{index}", schema] }
+        when ADDITIONAL_PROPERTIES, ITEMS then [[at, value]]
         else []
         end
       end

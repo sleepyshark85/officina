@@ -20,7 +20,7 @@ module Sleepyshark
 
       def self.check_keyword: (String keyword, untyped value, String at) -> Hash[String, Regexp]
 
-      def self.subschemas: (String keyword, untyped value) -> Array[[String, untyped]]
+      def self.subschemas: (String keyword, untyped value, String at) -> Array[[String, untyped]]
 
       def self.compile: (String pattern, String at) -> Regexp
 
