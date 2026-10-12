@@ -36,7 +36,7 @@ local verbose run for the split by gem. All tests run in one process, one at a t
   database where none runs (docs/conventions.md).
 - **Speed:** the whole suite takes about 25 s locally. 557 tests take under 0.1 s, 75 under 0.5 s, 8 under 1 s (all
   `BookshopTest`, the tests of the `exe/bookshop` command), and 2 over 1 s: the run's first database test, whichever it
-  is (about 2.2 s, the database's one-time setup), and an export test (see [Open gaps](#open-gaps)).
+  is (about 2.2 s, the database's one-time setup), and the first export test (see [Open gaps](#open-gaps)).
 
 ## Coverage
 
@@ -95,7 +95,7 @@ Most important first:
 | **CI's full mutation run never finishes.** `ruby-mutation` has a 30-minute limit and runs the three gems one after the other; on a CI runner the Claude gem alone took 13.5 min, and the run is cancelled during the MCP gem, so the core is not mutated in full. The last full run to finish took 24 min (run 38043833734, 2026-10-10); the 37 runs on `main` since then were all cancelled, 13 at the limit and 24 by a newer push | The 99% floor is not checked by CI; the numbers above come from a local run. Fix: one job per gem, or a longer limit |
 | 25 survivors in 19 core methods | In 5 of them a survivor removes a `Mutex` (`Cancellation`, `HashMemoryStore`), which a deterministic test cannot observe; the rest are in `Conversation` (JSON reading and writing, `append`), the schema and input DSL, `MemoryRules.valid_path?`, `FileMemoryStore#directory` and `Block.canonical`, each to kill or show equivalent |
 | 5 survivors in 3 Claude methods | `Model#check`, `Failure#transient?`, `Call#initialize` |
-| Tests over 1 s | The export tests take 1.1–1.9 s each (the export server in Docker), and the run's first database test pays about 2.2 s of one-time setup, whichever test it is; seen in local runs in several random orders |
+| Tests over 1 s | The run's first database test pays about 2.2 s of one-time setup, and the first export test about 1.1–1.9 s (the export server starting in Docker), whichever tests they are; seen locally in several random orders |
 | No live smoke test | TEST-04 waits for S13 |
 
 ## Reproducing
