@@ -18,6 +18,12 @@ module Sleepyshark
         PROTOCOL_VERSION: String
         PROTOCOL_VERSIONS: Array[String]
         TIMEOUT: Integer
+        VERSION_MEMBER: String
+        INITIALIZE: String
+        INITIALIZED: String
+        PING: String
+        LIST_TOOLS: String
+        CALL_TOOL: String
 
         @name: String
         @clock: clock

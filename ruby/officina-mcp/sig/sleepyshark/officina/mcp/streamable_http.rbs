@@ -4,6 +4,9 @@ module Sleepyshark
       class StreamableHttp
         FAILURES: Array[singleton(Exception)]
         OPEN_TIMEOUT: Integer
+        SESSION: String
+        JSON_BODY: String
+        EVENTS: String
 
         class Pending < Data
           attr_reader transport: StreamableHttp

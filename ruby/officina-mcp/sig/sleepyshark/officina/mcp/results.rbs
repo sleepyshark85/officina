@@ -2,6 +2,16 @@ module Sleepyshark
   module Officina
     module Mcp
       module Results
+        TOOLS: String
+        NEXT_CURSOR: String
+        CONTENT: String
+        IS_ERROR: String
+        NAME: String
+        INPUT_SCHEMA: String
+        DESCRIPTION: String
+        TYPE: String
+        TEXT: String
+
         def self.tools: (Wire::Response page) -> Array[Tool]?
 
         def self.next_cursor: (Wire::Response page) -> String?

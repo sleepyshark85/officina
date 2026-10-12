@@ -91,7 +91,7 @@ module Sleepyshark
         end
 
         def too_long(on_end)
-          on_end.call("it sent a message longer than #{Wire::MAX_MESSAGE_MB} MB")
+          on_end.call(Wire::TOO_LONG)
           kill
         end
 

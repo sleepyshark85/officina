@@ -26,7 +26,11 @@ module Sleepyshark
       # What a transport answers a notification with, once the server has it: an empty response. Steep asks a type of
       # an empty literal, which its annotation cannot give inside an expression.
       ACCEPTED = Wire::Response.new(message: {}.freeze, text: '{}') # steep:ignore
-      private_constant :POLL, :MONOTONIC, :ACCEPTED
+      # Why a transport its client closed is lost.
+      CLOSED = 'the connection was closed'
+      # What a transport raises once its server is lost, formatted with the server's name and the reason.
+      UNREACHABLE = 'MCP server %<name>s could not be reached: %<reason>s'
+      private_constant :POLL, :MONOTONIC, :ACCEPTED, :CLOSED, :UNREACHABLE
 
       # Connects to server: starts its command and speaks over the process's standard input and output, or reaches
       # its Streamable HTTP endpoint; then agrees on the protocol with it, within 30 seconds. cancel is anything with

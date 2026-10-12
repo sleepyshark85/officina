@@ -63,7 +63,7 @@ module Sleepyshark
 
         # Stops the server (see ChildProcess#stop), and returns once every thread started for it has ended.
         def close
-          lose('the connection was closed')
+          lose(CLOSED)
           @process.stop
         end
 
@@ -111,7 +111,7 @@ module Sleepyshark
           end
         end
 
-        def lost_reason = "MCP server #{@name} could not be reached: #{@lost}"
+        def lost_reason = format(UNREACHABLE, name: @name, reason: @lost)
       end
       private_constant :Stdio
     end
