@@ -12,9 +12,10 @@ Dotenv.load(File.expand_path('../.env', __dir__))
 OpenTelemetry.logger = Logger.new(File::NULL)
 
 # --demo compacts and clears early enough to see in a short session.
-abort 'Usage: bookshop [--demo]' unless (ARGV - ['--demo']).empty?
+demo_flag = '--demo'
+abort "Usage: bookshop [#{demo_flag}]" unless (ARGV - [demo_flag]).empty?
 begin
-  application = Bookshop.build(input: $stdin, output: $stdout, demo: ARGV.include?('--demo'))
+  application = Bookshop.build(input: $stdin, output: $stdout, demo: ARGV.include?(demo_flag))
 rescue Bookshop::SettingError, Bookshop::ExportServerError => e
   abort e.message
 end

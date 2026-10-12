@@ -23,11 +23,14 @@ module Sleepyshark
         "Here's the content of #{path} with line numbers:\n#{cut(numbered(lines, from, to == -1 ? lines.size : to))}"
       end
 
+      # A path within the scope as the model sees it.
+      def self.shown(at) = at.empty? ? MemoryTool::ROOT : "#{MemoryTool::ROOT}/#{at}"
+
       # Up to two levels below the directory, without hidden items, each with the size of everything in it.
-      # @param shown [String] the directory as the model sees it
       # @param files [Array<MemoryFile>] the files in it
       # @param at [String] the directory within the scope, empty for the memory directory
-      def self.listing(shown, files, at)
+      def self.listing(files, at)
+        shown = shown(at)
         entries = sizes(files, at).sort.map { |entry, bytes| "#{size(bytes)}\t#{shown}/#{entry}" }
         "Here're the files and directories up to 2 levels deep in #{shown}, excluding hidden items:\n" \
           "#{["#{size(files.sum(&:size))}\t#{shown}", *entries].join("\n")}"

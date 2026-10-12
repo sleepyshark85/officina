@@ -26,7 +26,7 @@ module Bookshop
 
     # The password in a PostgreSQL connection URL, nil when it has none.
     def self.password(url)
-      PG::Connection.conninfo_parse(url).find { |option| option[:keyword] == 'password' }&.fetch(:val, nil)
+      PG::Connection.conninfo_parse(url).to_h { |option| [option[:keyword].to_sym, option[:val]] }[:password]
     end
 
     # @param url [String] a PostgreSQL connection URL; nothing connects until the first call

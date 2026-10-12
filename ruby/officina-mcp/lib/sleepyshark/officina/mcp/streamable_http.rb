@@ -22,6 +22,11 @@ module Sleepyshark
         # How long opening a connection may take, in seconds. Net::HTTP cannot stop it sooner, so it bounds how long
         # a request cancelled while its connection opens still waits for its thread.
         OPEN_TIMEOUT = 10
+        # The header that carries the session the server gives.
+        SESSION = 'Mcp-Session-Id'
+        # The media types of the answers this transport reads: a JSON body, or an event stream.
+        JSON_BODY = 'application/json'
+        EVENTS = 'text/event-stream'
 
         # A request waiting for its response, which a thread of its own reads. The request's connection is its own,
         # so closing it is how a cancelled request stops that thread.
@@ -96,7 +101,7 @@ module Sleepyshark
         def lost? = @mutex.synchronize { !@lost.nil? }
 
         # Nothing to stop: each request has its own connection, closed when it ends.
-        def close = lose('the connection was closed')
+        def close = lose(CLOSED)
 
         private
 
@@ -106,15 +111,15 @@ module Sleepyshark
           raise ArgumentError, "MCP server #{@name}: #{url} is not an http or https URL"
         end
 
-        def lost_reason = "MCP server #{@name} could not be reached: #{@lost}"
+        def lost_reason = format(UNREACHABLE, name: @name, reason: @lost)
 
         def http? = @uri.is_a?(URI::HTTP) && !@host.empty?
 
         def build(text, version)
           request = Net::HTTP::Post.new(@uri, @headers)
           # Each chunk is read as it arrives, so none may be compressed. A nil leaves its header out.
-          { 'Content-Type' => 'application/json', 'Accept' => 'application/json, text/event-stream',
-            'Accept-Encoding' => 'identity', 'MCP-Protocol-Version' => version, 'Mcp-Session-Id' => session }
+          { 'Content-Type' => JSON_BODY, 'Accept' => "#{JSON_BODY}, #{EVENTS}",
+            'Accept-Encoding' => 'identity', 'MCP-Protocol-Version' => version, SESSION => session }
             .each { |name, value| request[name] = value }
           request.body = text
           request
@@ -133,7 +138,8 @@ module Sleepyshark
         # A connection of the request's own, opened on its thread.
         def connection
           http = limited_connection(@host, @uri.port)
-          http.use_ssl = @uri.scheme == 'https'
+          # instance_of?, as URI::HTTPS has no subclass for is_a? to take in.
+          http.use_ssl = @uri.instance_of?(URI::HTTPS)
           http
         end
 
@@ -165,8 +171,10 @@ module Sleepyshark
         end
 
         # A 404 to a request in a session means the server ended the session; to one before, that the URL is wrong.
+        # instance_of?, as Net::HTTPNotFound has no subclass for is_a? to take in.
         def raise_unless_ok(response, request)
-          raise Error, 'the server ended the session' if response.code == '404' && request.key?('Mcp-Session-Id')
+          ended = response.instance_of?(Net::HTTPNotFound) && request.key?(SESSION)
+          raise Error, 'the server ended the session' if ended
           return if response.is_a?(Net::HTTPSuccess)
 
           raise Error, "the server answered HTTP #{response.code} #{response.message}"
@@ -175,13 +183,13 @@ module Sleepyshark
         # The session a server gives is sent back with every later message.
         # mutant:disable -- see the class: its one survivor leaves out the lock
         def keep_session(response)
-          session = response['Mcp-Session-Id']
+          session = response[SESSION]
           @mutex.synchronize { @session = session } if session
         end
 
         # The response to request id, from an event stream or a JSON body.
         def answer(response, id)
-          Wire.answer(response, id, events: response.content_type.to_s.casecmp?('text/event-stream'))
+          Wire.answer(response, id, events: response.content_type.to_s.casecmp?(EVENTS))
         end
       end
       private_constant :StreamableHttp

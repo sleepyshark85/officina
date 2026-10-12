@@ -5,6 +5,10 @@ module Bookshop
   # consoles do. The trap only pushes to a queue, as a Mutex raises in trap context; a thread of its own reads the
   # queue and cancels the reply's Cancellation, or runs +idle+.
   class Interrupts
+    # Ctrl+C's signal.
+    SIGNAL = 'INT'
+    private_constant :SIGNAL
+
     # @param idle [#call] what Ctrl+C does with no reply in progress, on the watcher's thread
     def initialize(idle:)
       @idle = idle
@@ -17,12 +21,12 @@ module Bookshop
     #
     # @return the block's value
     def watch
-      previous = Signal.trap('INT') { @signals << :interrupt }
+      previous = Signal.trap(SIGNAL) { @signals << :interrupt }
       watcher = Thread.new { interrupt while @signals.pop }
       begin
         yield
       ensure
-        Signal.trap('INT', previous)
+        Signal.trap(SIGNAL, previous)
         # The trap, the queue's only sender, is gone, so nothing can push after this.
         @signals.close
         watcher.join

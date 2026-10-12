@@ -1,5 +1,7 @@
 module Bookshop
   class Budgets < Data
+    SETTING: String
+
     attr_reader reply: BigDecimal
     attr_reader session: BigDecimal
 

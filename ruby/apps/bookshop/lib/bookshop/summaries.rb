@@ -104,8 +104,7 @@ module Bookshop
 
     def store(id, summary, result)
       @store.save_summary(id, summary, usage: result.usage, cost: result.cost)
-      usage = result.usage
-      @telemetry.info("Session #{id} summarized: #{usage.all_input} input tokens, #{usage.output} output tokens")
+      @telemetry.info("Session #{id} summarized: #{Spent.logged(result.usage)}")
       summary
     rescue PG::Error => e
       @telemetry.warn("Session #{id} summary not saved: #{e.message.strip}")
@@ -115,8 +114,9 @@ module Bookshop
 
     def failed(id, reason)
       @failed << id
-      @telemetry.warn("Session #{id} could not be summarized: #{reason}")
-      @terminal.write_line("[Session #{id} could not be summarized: #{reason}]")
+      failure = "Session #{id} could not be summarized: #{reason}"
+      @telemetry.warn(failure)
+      @terminal.write_line("[#{failure}]")
       nil
     end
   end

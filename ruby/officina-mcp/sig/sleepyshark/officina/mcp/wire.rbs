@@ -14,10 +14,26 @@ module Sleepyshark
           def self.new: (message: Hash[String, json], text: String) -> instance
 
           def result: () -> json
+
+          def error_message: () -> json
+
+          def result_text: () -> String
         end
 
         MAX_MESSAGE_MB: Integer
         MAX_MESSAGE: Integer
+        TOO_LONG: String
+        JSONRPC: String
+        ID: String
+        METHOD: String
+        PARAMS: String
+        RESULT: String
+        ERROR: String
+        MESSAGE: String
+        VERSION: String
+        DATA: String
+
+        def self.request: (String method, Hash[String, untyped]? params, Integer? id) -> String
 
         def self.response: (String text) -> [Integer, Response]?
 

@@ -1,6 +1,10 @@
 module Sleepyshark
   module Officina
     class RunTrace
+      OPERATION_NAME: String
+      ERROR_TYPE: String
+
+
       @agent: Agent
       @telemetry: Telemetry
       @info: ModelInfo
@@ -25,7 +29,7 @@ module Sleepyshark
 
       def dimensions: () -> Hash[String, String]
 
-      def start: (String name, attributes: Hash[String, untyped], ?kind: Symbol?) -> OpenTelemetry::Trace::Span
+      def start: (String operation, String target, attributes: Hash[String, untyped], ?kind: Symbol?) -> OpenTelemetry::Trace::Span
 
       def add: (Symbol counter, Integer value, Hash[String, untyped] attributes) -> void
 
@@ -39,6 +43,8 @@ module Sleepyshark
 
       def content: (String name, String text, ?role: String?) -> Hash[String, String]?
 
+      def output_content: (String text) -> Hash[String, String]?
+
       def stop: (OpenTelemetry::Trace::Span span, ?String? error_type, ?String? description) -> void
 
       private
@@ -49,7 +55,6 @@ module Sleepyshark
 
       def answer: (result result) -> Hash[String, String]?
 
-      def ended: (result? result) -> String
 
       def reason: (result? result) -> String?
 

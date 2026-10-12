@@ -1,5 +1,28 @@
 module Bookshop
   class Console
+    class Command < Data
+      attr_reader name: String
+      attr_reader argument: String?
+      attr_reader help: String
+
+      def self.new: (String name, String? argument, String help) -> Command
+
+      def usage: () -> String
+      def ===: (untyped other) -> bool
+    end
+
+    HELP_COMMAND: Command
+    NEW: Command
+    SESSIONS: Command
+    RESUME: Command
+    COST: Command
+    AUDIT: Command
+    MEMORY: Command
+    QUIT: Command
+    COMMANDS: Array[Command]
+    COMMAND_START: String
+    HELP_HINT: String
+    USAGE_WIDTH: Integer
     HELP: String
 
     @demo: bool
@@ -21,10 +44,6 @@ module Bookshop
 
     def ask_staff_member: () -> String?
     def converse: (Session session) -> Session
-    def command: (String command, Session session) -> Session
-    def answer: (String command, Session session) -> void
-    def audited: (String command, Session session) -> String
-    def argument: (String command) -> String
     def reply: (Session session, String message) -> void
   end
 end

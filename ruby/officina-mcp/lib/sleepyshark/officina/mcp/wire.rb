@@ -5,13 +5,30 @@ require 'json'
 module Sleepyshark
   module Officina
     module Mcp
-      # Reading what a server writes: JSON-RPC messages, and the event streams Streamable HTTP may answer with.
+      # The JSON-RPC messages this client writes, and reading what a server writes: its messages, and the event streams
+      # Streamable HTTP may answer with.
       module Wire
         # The most a server may send for one message: a line over stdio, its line end aside; the whole answer to a
         # request over Streamable HTTP, with an event stream's framing and any messages before the response. More
         # loses the connection.
         MAX_MESSAGE_MB = 16
         MAX_MESSAGE = MAX_MESSAGE_MB * 1024 * 1024
+        # Why a server that sent more is lost.
+        TOO_LONG = "it sent a message longer than #{MAX_MESSAGE_MB} MB".freeze
+        # The JSON-RPC members this client writes and reads.
+        JSONRPC = 'jsonrpc'
+        ID = 'id'
+        METHOD = 'method'
+        PARAMS = 'params'
+        RESULT = 'result'
+        ERROR = 'error'
+        # The member of an error that says what failed.
+        MESSAGE = 'message'
+        # The JSON-RPC version every message names.
+        VERSION = '2.0'
+        # The field of an event stream's line that holds a message.
+        DATA = 'data:'
+        private_constant :JSONRPC, :ID, :METHOD, :PARAMS, :RESULT, :ERROR, :MESSAGE, :VERSION, :DATA
 
         # A response: its message, parsed and deeply frozen, and the text it was parsed from, which holds each value
         # exactly as the server wrote it.
@@ -20,7 +37,23 @@ module Sleepyshark
         # Reopened rather than given a block, which Steep would not read as the class's body.
         class Response
           # The message's result, as the server sent it.
-          def result = message['result']
+          def result = message[RESULT]
+
+          # What the error the server answered with says: its message, or the error itself when it is not an object;
+          # nil when it answered with none.
+          def error_message
+            error = message[ERROR]
+            error.instance_of?(Hash) ? error[MESSAGE].to_s : error
+          end
+
+          # The result's text, as the server wrote it.
+          def result_text = RawJson.member(text, RESULT)
+        end
+
+        # The text of a request with that id calling method with params, or of a notification when id is nil; nil
+        # params are left out.
+        def self.request(method, params, id)
+          JSON.generate({ JSONRPC => VERSION, ID => id, METHOD => method, PARAMS => params }.compact)
         end
 
         # The id and Response that text holds; nil for anything else a server may write: a request or notification of
@@ -69,7 +102,7 @@ module Sleepyshark
           size = 0
           body.read_body do |chunk|
             size += chunk.bytesize
-            raise Error, "it sent a message longer than #{MAX_MESSAGE_MB} MB" if size > MAX_MESSAGE
+            raise Error, TOO_LONG if size > MAX_MESSAGE
 
             yield chunk
           end
@@ -77,9 +110,9 @@ module Sleepyshark
 
         # Its id, when message is a response: one with a result or an error, a positive integer id and no method.
         def self.response_id(message)
-          id = message['id']
-          id if id.instance_of?(Integer) && id.positive? && !message.key?('method') &&
-                (message.key?('result') || message.key?('error'))
+          id = message[ID]
+          id if id.instance_of?(Integer) && id.positive? && !message.key?(METHOD) &&
+                (message.key?(RESULT) || message.key?(ERROR))
         end
         private_class_method :from_events, :from_body, :each_chunk, :response_id
 
@@ -113,8 +146,8 @@ module Sleepyshark
           private
 
           def line(text)
-            if text.start_with?('data:')
-              @data << text.delete_prefix('data:').delete_prefix(' ')
+            if text.start_with?(DATA)
+              @data << text.delete_prefix(DATA).delete_prefix(' ')
             elsif text.empty? && !@data.empty?
               yield @data.join("\n").force_encoding(Encoding::UTF_8)
               @data = []

@@ -85,12 +85,12 @@ module Sleepyshark
         text.length > MAX_TEXT ? "#{text[0, MAX_TEXT]}… [truncated: #{text.length} characters]" : text
       end
 
+      # The run's outcome, with why it stopped or failed.
       def ended(result)
+        outcome = RunOutcome.of(result)
         case result
-        in Completed then { outcome: 'completed' }
-        in Stopped then { outcome: "stopped: #{result.reason}", detail: result.detail }
-        in Failed then { outcome: "failed: #{result.reason}", detail: result.detail }
-        in nil then { outcome: 'abandoned' }
+        in Stopped | Failed then { outcome: "#{outcome}: #{result.reason}", detail: result.detail }
+        else { outcome: }
         end
       end
     end

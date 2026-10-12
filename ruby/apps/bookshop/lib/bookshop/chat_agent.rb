@@ -50,7 +50,7 @@ module Bookshop
       # Claude Opus 5.5 at medium effort, its caches kept for the mode's time. The API key comes from
       # ANTHROPIC_API_KEY, where the SDK finds it.
       def claude
-        Officina::Claude::Model.new(name: 'claude-opus-5-5', effort: :medium, max_output_tokens: 16_000,
+        Officina::Claude::Model.new(name: CLAUDE_MODEL, effort: :medium, max_output_tokens: 16_000,
                                     prefix_cache: cache, conversation_cache: cache)
       end
     end
@@ -64,7 +64,7 @@ module Bookshop
         compact_at: 150_000,
         clear_tool_results: Officina::ToolResultClearing.new(after: 20, keep: 5, at_least_tokens: 20_000)
       ),
-      cache: '1h'
+      cache: Officina::Claude::Model::LONG_CACHE
     )
 
     # Demo mode compacts at Claude's minimum, which the demo's four 10–15k-token searches reach.
@@ -77,7 +77,7 @@ module Bookshop
     DEMO = Mode.new(
       context_management: Officina::ContextManagement.new(compact_at: DEMO_COMPACT_AT,
                                                           clear_tool_results: DEMO_CLEARING),
-      cache: '5m'
+      cache: Officina::Claude::Model::SHORT_CACHE
     )
     private_constant :Officina, :Mode, :STANDARD, :DEMO_COMPACT_AT, :DEMO_CLEARING, :DEMO
 

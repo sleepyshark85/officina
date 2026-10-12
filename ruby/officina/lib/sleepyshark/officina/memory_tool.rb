@@ -15,11 +15,13 @@ module Sleepyshark
     #   agent = Agent.new(model:, instructions:, tools: [MemoryTool.new(FileMemoryStore.new('memory'))])
     #   agent.run(conversation, 'I prefer prices with tax.', memory_scope: 'sam')
     class MemoryTool < Tool
+      # The memory directory as the model sees it.
+      ROOT = '/memories'
       # What a provider without a memory tool of its own would send. Both are part of the prefix, written as .NET
       # writes them, so an agent with memory has the same fingerprint in every implementation.
-      DESCRIPTION = 'Your memory: a directory of text files under /memories that persists across conversations. ' \
+      DESCRIPTION = "Your memory: a directory of text files under #{ROOT} that persists across conversations. " \
                     "Commands: view (a file, or a directory's listing), create (create or overwrite a file), " \
-                    'str_replace, insert, delete and rename.'
+                    'str_replace, insert, delete and rename.'.freeze
       SCHEMA = Schema.new(<<~JSON.chomp)
         {"type":"object","properties":{"command":{"type":"string","enum":["view","create","str_replace","insert","delete","rename"]},
         "path":{"type":"string"},"view_range":{"type":"array","items":{"type":"integer"}},"file_text":{"type":"string"},
@@ -27,7 +29,7 @@ module Sleepyshark
         "old_path":{"type":"string"},"new_path":{"type":"string"}},"required":["command"]}
       JSON
       # What starts every path under the memory directory.
-      UNDER_ROOT = "#{MemoryCommand::ROOT}/".freeze
+      UNDER_ROOT = "#{ROOT}/".freeze
       private_constant :DESCRIPTION, :SCHEMA, :UNDER_ROOT
 
       # @param store [_MemoryStore] where the files are kept; one store may serve many agents and runs
@@ -41,7 +43,7 @@ module Sleepyshark
       def memory? = true
 
       # A view only reads, so it never needs approval.
-      def needs_approval_for?(input) = super && !(JSON.parse(input, symbolize_names: true) in { command: 'view' })
+      def needs_approval_for?(input) = super && !(command_of(JSON.parse(input)) in :view)
 
       private
 
@@ -50,7 +52,8 @@ module Sleepyshark
       def command(store, scope, input)
         raise Error, 'The memory tool needs the memory scope of a run' unless scope
 
-        named = input.fetch('command') == 'rename' ? input.values_at('old_path', 'new_path') : [input['path']]
+        name = command_of(input)
+        named = paths_of(name, input)
         # @type var scoped: Hash[String, String]
         scoped = {}
         named.each do |path|
@@ -59,17 +62,27 @@ module Sleepyshark
 
           scoped[path] = at
         end
-        MemoryCommand.new(MemoryFiles.new(store, scope), input, named.first, scoped).run
+        MemoryCommand.new(MemoryFiles.new(store, scope), input, named, scoped).run(name)
       end
 
+      # The paths the command names: a rename's old and new ones, else its one.
+      def paths_of(name, input)
+        return [input[MemoryInput::PATH]] unless name == :rename
+
+        input.values_at(MemoryInput::OLD_PATH, MemoryInput::NEW_PATH)
+      end
+
+      # The input's command, as a Symbol.
+      def command_of(input) = input.fetch(MemoryInput::COMMAND).to_sym
+
       def outside(path)
-        ToolFailure.new(message: "Error: The path #{path || '(none)'} is not a valid path under #{MemoryCommand::ROOT}.")
+        ToolFailure.new(message: "Error: The path #{path || '(none)'} is not a valid path under #{ROOT}.")
       end
 
       # The path within the scope that the model's path names: empty for the memory directory, nil for none.
       def within(path)
         path = path&.delete_suffix('/')
-        return '' if path == MemoryCommand::ROOT
+        return '' if path == ROOT
 
         return unless path&.start_with?(UNDER_ROOT)
 

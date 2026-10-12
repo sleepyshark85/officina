@@ -72,8 +72,8 @@ module Sleepyshark
 
       def problem(keyword, rule, value)
         case keyword
-        when 'anyOf' then any_of_problem(rule, value)
-        when 'pattern' then pattern_problem(rule, value)
+        when SchemaSubset::ANY_OF then any_of_problem(rule, value)
+        when SchemaSubset::PATTERN then pattern_problem(rule, value)
         else
           kind, check = RULES[keyword]
           check.call(rule, value) if kind && value.is_a?(kind)
@@ -96,17 +96,17 @@ module Sleepyshark
         case value
         when Hash then object_problems(schema, value, path)
         when Array
-          items = schema.fetch('items', true)
+          items = schema.fetch(SchemaSubset::ITEMS, true)
           value.each_with_index.flat_map { |item, index| problems(items, item, "#{path}/#{index}") }
         else []
         end
       end
 
       def object_problems(schema, value, path)
-        missing = schema.fetch('required', []).reject { |name| value.key?(name) }
+        missing = schema.fetch(SchemaSubset::REQUIRED, []).reject { |name| value.key?(name) }
         missing.map { |name| "#{path}/#{name}: is required" } + value.flat_map do |name, child|
-          rule = schema.dig('properties', name)
-          problems(rule.nil? ? schema.fetch('additionalProperties', true) : rule, child, "#{path}/#{name}")
+          rule = schema.dig(SchemaSubset::PROPERTIES, name)
+          problems(rule.nil? ? schema.fetch(SchemaSubset::ADDITIONAL_PROPERTIES, true) : rule, child, "#{path}/#{name}")
         end
       end
 

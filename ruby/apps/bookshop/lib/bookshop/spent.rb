@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 module Bookshop
-  # How the console shows what replies spent, as .NET and Go show it: tokens with their thousands separated by commas,
-  # and US dollars rounded half away from zero, never through a Float.
+  # How the console and the logs show what replies spent, as .NET and Go show it: on the console, tokens with their
+  # thousands separated by commas, and US dollars rounded half away from zero, never through a Float.
   module Spent
     # Such as "tokens: 5,200 in (77% from cache), 300 out": all the input, cache reads and writes included, with the
     # share of it read from the cache.
@@ -32,6 +32,11 @@ module Bookshop
 
     # The count, not negative, with its thousands separated by commas, such as 1,000.
     def self.thousands(count) = count.to_s.gsub(/\B(?=(\d{3})+\z)/, ',')
+
+    # A run's tokens as the application's logs give them, such as "5200 input tokens, 300 output tokens".
+    #
+    # @param usage [Sleepyshark::Officina::Usage]
+    def self.logged(usage) = "#{usage.all_input} input tokens, #{usage.output} output tokens"
   end
   private_constant :Spent
 end

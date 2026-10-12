@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require 'json'
-
 module Sleepyshark
   module Officina
     module Mcp
@@ -14,7 +12,16 @@ module Sleepyshark
         PROTOCOL_VERSIONS = %w[2025-06-18 2025-03-26 2024-11-05].freeze
         # How long connecting, listing the tools (every page), or a ping may take, in seconds.
         TIMEOUT = 30
-        private_constant :PROTOCOL_VERSION, :PROTOCOL_VERSIONS, :TIMEOUT
+        # The member of the handshake that names the protocol version, asked for and agreed on.
+        VERSION_MEMBER = 'protocolVersion'
+        # The protocol's methods this client calls.
+        INITIALIZE = 'initialize'
+        INITIALIZED = 'notifications/initialized'
+        PING = 'ping'
+        LIST_TOOLS = 'tools/list'
+        CALL_TOOL = 'tools/call'
+        private_constant :PROTOCOL_VERSION, :PROTOCOL_VERSIONS, :TIMEOUT, :VERSION_MEMBER, :INITIALIZE, :INITIALIZED,
+                         :PING, :LIST_TOOLS, :CALL_TOOL
 
         # Agrees on the protocol with the server called name over transport, which only Mcp.connect makes; see
         # Mcp.connect.
@@ -32,7 +39,7 @@ module Sleepyshark
         # @raise [Mcp::Error] when the server has gone, fails, answers with an error, gives a page's cursor twice, has
         #   not given every page within 30 seconds, or cancel is cancelled.
         def list_tools(cancel: nil)
-          tool_pages(cancel).flat_map { Results.tools(it) || unreadable('tools/list') }.freeze
+          tool_pages(cancel).flat_map { Results.tools(it) || unreadable(LIST_TOOLS) }.freeze
         end
 
         # Calls the tool name on the server with arguments, a Hash that becomes its JSON input. A tool that fails
@@ -41,8 +48,8 @@ module Sleepyshark
         # @raise [Mcp::Error] when the server has gone, fails, answers with an error, or cancel is cancelled while
         #   it waits; it does not wait for the tool to stop.
         def call_tool(name, arguments, cancel: nil)
-          response = request('tools/call', { 'name' => name, 'arguments' => arguments }, cancel:)
-          Results.call_result(response.result) || unreadable('tools/call')
+          response = request(CALL_TOOL, { 'name' => name, 'arguments' => arguments }, cancel:)
+          Results.call_result(response.result) || unreadable(CALL_TOOL)
         end
 
         # Checks that the server still answers.
@@ -50,7 +57,7 @@ module Sleepyshark
         # @raise [Mcp::Error] when the server has gone, fails, answers with an error or not within 30 seconds, or
         #   cancel is cancelled.
         def ping(cancel: nil)
-          request('ping', nil, cancel:, deadline: @clock.call + TIMEOUT)
+          request(PING, nil, cancel:, deadline: @clock.call + TIMEOUT)
           nil
         end
 
@@ -69,19 +76,19 @@ module Sleepyshark
           # @type var connected: bool
           connected = false
           deadline = @clock.call + TIMEOUT
-          response = request('initialize', { 'protocolVersion' => PROTOCOL_VERSION, 'capabilities' => {},
-                                             'clientInfo' => { 'name' => 'officina', 'version' => VERSION } },
+          response = request(INITIALIZE, { VERSION_MEMBER => PROTOCOL_VERSION, 'capabilities' => {},
+                                           'clientInfo' => { 'name' => 'officina', 'version' => VERSION } },
                              cancel:, deadline:)
           # The version agreed on, sent with every later message; none before.
-          @version = agreed(response.result['protocolVersion'])
-          exchange('notifications/initialized', nil, nil, cancel:, deadline:)
+          @version = agreed(response.result[VERSION_MEMBER])
+          exchange(INITIALIZED, nil, nil, cancel:, deadline:)
           connected = true
         ensure
           # However it failed, a server it started does not outlive it.
           close unless connected
         end
 
-        # Every page of tools/list, all within TIMEOUT.
+        # Every page of the tool list, all within TIMEOUT.
         def tool_pages(cancel)
           deadline = @clock.call + TIMEOUT
           # @type var cursors: Array[String]
@@ -89,7 +96,7 @@ module Sleepyshark
           # @type var pages: Array[Wire::Response]
           pages = []
           loop do
-            pages << request('tools/list', { 'cursor' => cursors.last }.compact, cancel:, deadline:)
+            pages << request(LIST_TOOLS, { 'cursor' => cursors.last }.compact, cancel:, deadline:)
             cursor = Results.next_cursor(pages.fetch(-1)) or break
             raise Error, "MCP server #{@name} gave the cursor #{cursor.inspect} twice" if cursors.include?(cursor)
 
@@ -109,8 +116,8 @@ module Sleepyshark
         # the class itself, never of a subclass, so the check is instance_of?.
         def request(method, params, cancel:, deadline: nil)
           response = exchange(method, params, next_id, cancel:, deadline:)
-          error = response.message['error']
-          refused(method, error.instance_of?(Hash) ? error['message'] : error) if error
+          error = response.error_message
+          refused(method, error) if error
           unreadable(method) unless response.result.instance_of?(Hash)
           response
         end
@@ -130,8 +137,7 @@ module Sleepyshark
         # cancelled or the deadline, if any, passes.
         def exchange(method, params, id, cancel:, deadline:)
           raise_if_cancelled_or_late(method, cancel, deadline)
-          message = { 'jsonrpc' => '2.0', 'id' => id, 'method' => method, 'params' => params }.compact
-          pending = @transport.post(JSON.generate(message), id, @version)
+          pending = @transport.post(Wire.request(method, params, id), id, @version)
           begin
             wait(pending, method, cancel, deadline)
           ensure

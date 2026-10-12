@@ -13,6 +13,9 @@ module Sleepyshark
       end
 
       def approved? = approved
+
+      # The answer in a word, as the audit trail and telemetry record it: "approved" or "denied".
+      def answer = approved ? 'approved' : 'denied'
     end
   end
 end

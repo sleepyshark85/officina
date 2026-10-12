@@ -69,6 +69,16 @@ class ConsoleTest < Minitest::Test
     assert_empty model.requests
   end
 
+  def test_app02_a_command_that_takes_no_argument_is_unknown_with_one
+    model = ScriptedModel.new
+
+    transcript = session(model, 'Sam', '/quit now', '/help me', '/quit')
+
+    assert_in_order transcript, "you> /quit now\nUnknown command /quit now. Type /help for commands.\n",
+                    "you> /help me\nUnknown command /help me. Type /help for commands.\n", "you> /quit\n"
+    assert_empty model.requests
+  end
+
   def test_app13_the_run_context_names_the_date_and_staff_member_and_is_sent_again_only_on_a_new_day
     now = [Time.new(2026, 10, 10, 8)]
     model = ScriptedModel.new(ScriptedModel.text('Good morning.'), ScriptedModel.text('Good evening.'),

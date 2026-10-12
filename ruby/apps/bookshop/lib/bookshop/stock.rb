@@ -57,7 +57,7 @@ module Bookshop
       private
 
       def check(book, line)
-        raise RefusedError, "There is no book with id #{line.book_id}. Nothing was ordered." unless book
+        raise RefusedError, "#{Catalogue.no_book(line.book_id)} Nothing was ordered." unless book
         return if book[:quantity] >= line.quantity
 
         raise RefusedError, "Not enough stock for \"#{book[:title]}\" (id #{line.book_id}): #{line.quantity} " \

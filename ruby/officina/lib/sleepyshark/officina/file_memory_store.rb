@@ -68,7 +68,7 @@ module Sleepyshark
       #   or the new path is taken, is a directory or runs through a file
       def rename(scope, path, new_path)
         within(scope, path, new_path) do |file, directory|
-          raise Error, "There is no memory file #{path}." unless File.file?(file)
+          raise MemoryRules.no_file(path) unless File.file?(file)
 
           target = vacant(directory, new_path)
           FileUtils.mkdir_p(File.dirname(target))
@@ -113,17 +113,17 @@ module Sleepyshark
       # The new path's file, once it is free: no file or directory there, and no link or file on the way.
       def vacant(directory, path)
         refuse_links(directory, path)
-        raise Error, "There is already a memory file #{path}." if File.file?(File.join(directory, path))
+        raise MemoryRules.file_taken(path) if File.file?(File.join(directory, path))
 
         refuse_clash(directory, path)
         File.join(directory, path)
       end
 
       def refuse_clash(directory, path)
-        raise Error, "#{path} is a memory directory." if File.directory?(File.join(directory, path))
+        raise MemoryRules.directory(path) if File.directory?(File.join(directory, path))
 
         file = ancestors(path).find { |above| File.file?(File.join(directory, above)) }
-        raise Error, "#{path} runs through the memory file #{file}." if file
+        raise MemoryRules.through_file(path, file) if file
       end
 
       # The directories above the path, outermost first.

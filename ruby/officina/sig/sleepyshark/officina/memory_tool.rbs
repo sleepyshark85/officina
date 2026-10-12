@@ -1,6 +1,7 @@
 module Sleepyshark
   module Officina
     class MemoryTool < Tool
+      ROOT: String
       DESCRIPTION: String
       SCHEMA: Schema
       UNDER_ROOT: String
@@ -14,6 +15,10 @@ module Sleepyshark
       private
 
       def command: (_MemoryStore store, String? scope, Hash[String, untyped] input) -> (String | ToolFailure)
+
+      def paths_of: (Symbol name, Hash[String, untyped] input) -> Array[String]
+
+      def command_of: (Hash[String, untyped] input) -> Symbol
 
       def outside: (String? path) -> ToolFailure
 

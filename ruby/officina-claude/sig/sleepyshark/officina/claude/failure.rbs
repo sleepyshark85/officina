@@ -7,6 +7,8 @@ module Sleepyshark
         AUTHENTICATION_TYPES: Array[Symbol]
         AUTHENTICATION_STATUSES: Array[Integer]
         LONGEST_WAIT: Float
+        RETRY_AFTER: String
+        PROMPT_TOO_LONG: String
 
         def self.prompt_too_long?: (Anthropic::Errors::APIStatusError answer) -> bool
 

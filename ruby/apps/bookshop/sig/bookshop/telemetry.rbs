@@ -32,6 +32,5 @@ module Bookshop
     def traced: (String name, ^() -> Sleepyshark::Officina::result run)
                 { (Sleepyshark::Officina::result result) -> void } -> Sleepyshark::Officina::result
     def log: (String conversation, Sleepyshark::Officina::result result) -> void
-    def ended: (String conversation, String how, Sleepyshark::Officina::Usage usage) -> void
   end
 end

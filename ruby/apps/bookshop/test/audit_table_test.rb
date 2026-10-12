@@ -63,7 +63,7 @@ class AuditTableTest < Minitest::Test
 
     records = AuditTable.new(database: @database).entries(conversation.id)
 
-    assert_equal %w[RunStarted ToolStarted ToolEnded RunEnded], records.map(&:kind)
+    assert_equal %i[run_started tool_started tool_ended run_ended], records.map(&:kind)
     assert_equal [START, START, START + 1, START + 1], records.map(&:time)
     assert_equal [nil, nil, 1.0, nil], records.map(&:duration)
     assert_equal [Officina::Usage.new(input: 1000, output: 200, cache_read: 3000), BigDecimal('0.0115')],

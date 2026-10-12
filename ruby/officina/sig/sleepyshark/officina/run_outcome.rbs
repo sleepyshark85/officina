@@ -1,0 +1,7 @@
+module Sleepyshark
+  module Officina
+    module RunOutcome
+      def self.of: (result? result) -> String
+    end
+  end
+end

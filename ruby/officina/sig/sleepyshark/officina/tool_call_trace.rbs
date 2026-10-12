@@ -2,6 +2,9 @@ module Sleepyshark
   module Officina
     class ToolCallTrace
       ERRORS: Hash[Symbol, String]
+      TOOL_NAME: String
+      OUTCOME: String
+      APPROVAL: String
 
       @run: RunTrace
       @started: Time
@@ -14,7 +17,7 @@ module Sleepyshark
 
       def asked: () -> Time
 
-      def answered: (bool approved, cancelled: bool) -> void
+      def answered: (Approval approval, cancelled: bool) -> void
 
       def finish: (Symbol outcome, ran: Float?, length: Integer, truncated: bool, result: String) -> void
 

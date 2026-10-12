@@ -1,6 +1,12 @@
 module Sleepyshark
   module Officina
     module SchemaSubset
+      PROPERTIES: String
+      ADDITIONAL_PROPERTIES: String
+      REQUIRED: String
+      ITEMS: String
+      ANY_OF: String
+      PATTERN: String
       TYPES: Hash[String, Proc]
       COUNT: ^(untyped) -> String?
       NUMBER: ^(untyped) -> String?
@@ -14,7 +20,7 @@ module Sleepyshark
 
       def self.check_keyword: (String keyword, untyped value, String at) -> Hash[String, Regexp]
 
-      def self.subschemas: (String keyword, untyped value) -> Array[[String, untyped]]
+      def self.subschemas: (String keyword, untyped value, String at) -> Array[[String, untyped]]
 
       def self.compile: (String pattern, String at) -> Regexp
 

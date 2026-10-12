@@ -9,6 +9,10 @@ module Sleepyshark
     # if any, and makes the spans of the run's model and tool calls under it. Spans are parented explicitly and never
     # made current, as tool calls end on other threads. Every time comes from the agent's clock.
     class RunTrace
+      # The attributes the run's span and the spans and measurements of its calls share.
+      OPERATION_NAME = 'gen_ai.operation.name'
+      ERROR_TYPE = 'error.type'
+
       # @!attribute [r] run
       #   @return [String] the run's id, which its span and audit entries carry
       # @!attribute [r] span
@@ -50,7 +54,7 @@ module Sleepyshark
 
       # Counts the run and ends its span: how it ended, with what it used; nil when the host left it.
       def finish(result)
-        outcome = { 'officina.run.result' => ended(result), 'officina.run.reason' => reason(result) }.compact
+        outcome = { 'officina.run.result' => RunOutcome.of(result), 'officina.run.reason' => reason(result) }.compact
         add(:runs, 1, dimensions.merge(outcome))
         @span.add_attributes(outcome)
         if result
@@ -77,10 +81,11 @@ module Sleepyshark
           'gen_ai.request.model' => @info.name }.compact
       end
 
-      # Starts a span under the run's.
+      # Starts the span of the operation on the target, such as a chat with a model, under the run's.
       # @param kind [Symbol, nil] +:client+, or nil for an internal span
-      def start(name, attributes:, kind: nil)
-        @telemetry.start_span(name, parent: @children, kind:, attributes:, at: now)
+      def start(operation, target, attributes:, kind: nil)
+        attributes = { OPERATION_NAME => operation, **attributes }
+        @telemetry.start_span("#{operation} #{target}", parent: @children, kind:, attributes:, at: now)
       end
 
       def add(counter, value, attributes) = @telemetry.add(counter, value, attributes)
@@ -107,10 +112,13 @@ module Sleepyshark
         { name => @agent.redact(text) }
       end
 
+      # The content attribute of the model's answer, as #content.
+      def output_content(text) = content('gen_ai.output.messages', text, role: 'assistant')
+
       # Ends the span, marked failed with the error type and its description, without secrets, when there is one.
       def stop(span, error_type = nil, description = nil)
         if error_type
-          span.set_attribute('error.type', error_type)
+          span.set_attribute(ERROR_TYPE, error_type)
           span.status = OpenTelemetry::Trace::Status.error(@agent.redact(description.to_s))
         end
         span.finish(end_timestamp: now)
@@ -120,10 +128,11 @@ module Sleepyshark
 
       # Starts the run's span under the current one.
       def start_run(conversation, input)
-        attributes = { 'gen_ai.operation.name' => 'invoke_agent', 'gen_ai.conversation.id' => conversation.id,
+        operation = 'invoke_agent'
+        attributes = { OPERATION_NAME => operation, 'gen_ai.conversation.id' => conversation.id,
                        'officina.run.id' => @run, 'officina.memory.scope' => @memory_scope, **dimensions,
                        **content('gen_ai.input.messages', input, role: 'user') }
-        name = ['invoke_agent', @agent.name].compact.join(' ')
+        name = [operation, @agent.name].compact.join(' ')
         @telemetry.start_span(name, attributes: attributes.compact, at: now)
       end
 
@@ -137,17 +146,8 @@ module Sleepyshark
 
       def answer(result)
         case result
-        in Completed(text:) then content('gen_ai.output.messages', text, role: 'assistant')
+        in Completed(text:) then output_content(text)
         else nil
-        end
-      end
-
-      def ended(result)
-        case result
-        in Completed then 'completed'
-        in Stopped then 'stopped'
-        in Failed then 'failed'
-        in nil then 'abandoned'
         end
       end
 

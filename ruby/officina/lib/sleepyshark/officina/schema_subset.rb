@@ -4,6 +4,13 @@ module Sleepyshark
   module Officina
     # The subset of JSON Schema (draft 2020-12) the core validates, and the check that a schema keeps to it.
     module SchemaSubset
+      # The keywords the core reads by name, rather than through a table of rules.
+      PROPERTIES = 'properties'
+      ADDITIONAL_PROPERTIES = 'additionalProperties'
+      REQUIRED = 'required'
+      ITEMS = 'items'
+      ANY_OF = 'anyOf'
+      PATTERN = 'pattern'
       # What a value of each type is, as JSON.parse returns it; 1.0 is an integer, as JSON Schema says.
       TYPES = {
         'object' => ->(value) { value.is_a?(Hash) },
@@ -19,18 +26,19 @@ module Sleepyshark
       # The keywords whose value must have a shape, each with the problem a schema has when its value has not.
       SHAPES = {
         'type' => ->(value) { 'unknown type' if Array(value).empty? || !Array(value).all? { |type| TYPES.key?(type) } },
-        'properties' => ->(value) { 'must be an object' unless value.is_a?(Hash) },
-        'required' => ->(value) { 'must be an array of names' unless value.is_a?(Array) && value.all?(String) },
-        'anyOf' => ->(value) { 'must be a non-empty array' unless value.is_a?(Array) && !value.empty? },
+        PROPERTIES => ->(value) { 'must be an object' unless value.is_a?(Hash) },
+        REQUIRED => ->(value) { 'must be an array of names' unless value.is_a?(Array) && value.all?(String) },
+        ANY_OF => ->(value) { 'must be a non-empty array' unless value.is_a?(Array) && !value.empty? },
         'enum' => ->(value) { 'must be an array' unless value.is_a?(Array) },
         'minLength' => COUNT, 'maxLength' => COUNT, 'minItems' => COUNT, 'maxItems' => COUNT,
         'minimum' => NUMBER, 'maximum' => NUMBER,
-        'pattern' => ->(value) { 'must be a string' unless value.is_a?(String) }
+        PATTERN => ->(value) { 'must be a string' unless value.is_a?(String) }
       }.freeze
       # The subset's other keywords, whose value may be anything: a subschema, checked as one, or an annotation.
-      UNCHECKED = %w[
-        additionalProperties items const
-        $schema $id $comment title description default examples format readOnly writeOnly deprecated
+      UNCHECKED = [
+        ADDITIONAL_PROPERTIES, ITEMS, 'const',
+        '$schema', '$id', '$comment', 'title', 'description', 'default', 'examples', 'format', 'readOnly', 'writeOnly',
+        'deprecated'
       ].freeze
       # Seconds a pattern may take on one value; one that takes longer is that value's problem.
       PATTERN_TIMEOUT = 0.1
@@ -44,7 +52,8 @@ module Sleepyshark
       def self.patterns_in(schema, path)
         return {} if [true, false].include?(schema)
 
-        refuse(path, 'a schema must be an object or a boolean') unless schema.is_a?(Hash)
+        # JSON.parse makes each object a Hash itself, never a subclass.
+        refuse(path, 'a schema must be an object or a boolean') unless schema.instance_of?(Hash)
         schema.map { |keyword, value| check_keyword(keyword, value, "#{path}/#{keyword}") }.reduce({}, :merge)
       end
 
@@ -52,16 +61,17 @@ module Sleepyshark
         refuse(at, 'is not a supported keyword') unless SHAPES.key?(keyword) || UNCHECKED.include?(keyword)
         problem = SHAPES[keyword]&.call(value)
         refuse(at, problem) if problem
-        return { value => compile(value, at) } if keyword == 'pattern'
+        return { value => compile(value, at) } if keyword == PATTERN
 
-        subschemas(keyword, value).map { |name, subschema| patterns_in(subschema, "#{at}#{name}") }.reduce({}, :merge)
+        subschemas(keyword, value, at).map { |path, subschema| patterns_in(subschema, path) }.reduce({}, :merge)
       end
 
-      def self.subschemas(keyword, value)
+      # The subschemas the keyword at that path holds, each with its own path.
+      def self.subschemas(keyword, value, at)
         case keyword
-        when 'properties' then value.map { |name, schema| ["/#{name}", schema] }
-        when 'anyOf' then value.each_with_index.map { |schema, index| ["/#{index}", schema] }
-        when 'additionalProperties', 'items' then [['', value]]
+        when PROPERTIES then value.map { |name, schema| ["#{at}/#{name}", schema] }
+        when ANY_OF then value.each_with_index.map { |schema, index| ["#{at}/#{index}", schema] }
+        when ADDITIONAL_PROPERTIES, ITEMS then [[at, value]]
         else []
         end
       end

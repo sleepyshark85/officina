@@ -1,0 +1,16 @@
+module Sleepyshark
+  module Officina
+    module MemoryInput
+      COMMAND: String
+      PATH: String
+      OLD_PATH: String
+      NEW_PATH: String
+      VIEW_RANGE: String
+      FILE_TEXT: String
+      OLD_STR: String
+      NEW_STR: String
+      INSERT_LINE: String
+      INSERT_TEXT: String
+    end
+  end
+end

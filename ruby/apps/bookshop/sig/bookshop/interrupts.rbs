@@ -1,5 +1,7 @@
 module Bookshop
   class Interrupts
+    SIGNAL: String
+
     @idle: ^() -> void
     @signals: Thread::Queue[Symbol]
     @lock: Thread::Mutex
