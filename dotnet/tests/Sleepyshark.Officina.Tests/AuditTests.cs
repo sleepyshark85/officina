@@ -263,7 +263,7 @@ public class AuditTests
         var sink = new RecordingSink();
         var model = new ScriptedModel().CallTools(new ToolCall("c1", "order", "{}"));
         var order = Agents.Tool("order", kind: ToolKind.Write, needsApproval: true);
-        var agent = Agents.With(model, tools: order) with { AuditSink = sink, Approver = new CancellingApprover(cancellation) };
+        var agent = Agents.With(model, tools: order) with { AuditSink = sink, Approver = new UnansweredApprover(cancellation) };
 
         var events = await Agents.CollectAsync(agent.StreamAsync(new Conversation(), "Order x.", cancellationToken: cancellation.Token));
 
@@ -271,17 +271,6 @@ public class AuditTests
             [(AuditKind.ApprovalAsked, (string?)null, (string?)null), (AuditKind.ApprovalAnswered, "denied", "The call was cancelled while waiting for approval.")],
             sink.Entries.Where(entry => entry.Kind is AuditKind.ApprovalAsked or AuditKind.ApprovalAnswered).Select(entry => (entry.Kind, entry.Outcome, entry.Detail)));
         Assert.False(Assert.Single(events.OfType<ApprovalAnswered>()).Approved);
-    }
-
-    /// <summary>A human still deciding when the host cancels the run.</summary>
-    private sealed class CancellingApprover(CancellationTokenSource host) : IApprover
-    {
-        public async Task<Approval> ApproveAsync(Tool tool, ToolCall toolCall, CancellationToken cancellationToken)
-        {
-            await host.CancelAsync();
-            cancellationToken.ThrowIfCancellationRequested();
-            return Approval.Granted;
-        }
     }
 
     [Fact]
