@@ -102,6 +102,37 @@ public class ToolLoopTests
     }
 
     [Fact]
+    public async Task Each_schema_problem_an_approver_without_an_answer_and_a_handler_without_output_come_back_as_error_results()
+    {
+        var model = new ScriptedModel()
+            .CallTools(new ToolCall("c1", "pair", """{"a":1,"b":2}"""), new ToolCall("c2", "order", "{}"), new ToolCall("c3", "silent", "{}"))
+            .Reply("None of that worked.");
+        var agent = Agents.With(
+            model,
+            tools: [
+                Agents.Tool("pair", schema: """{"type":"object","properties":{"a":{"type":"string"},"b":{"type":"string"}}}"""),
+                Agents.Tool("order", kind: ToolKind.Write, needsApproval: true),
+                Agents.Tool("silent", handler: (_, _) => Task.FromResult<ToolOutput>(null!)),
+            ]) with
+        { Approver = new SilentApprover() };
+        var conversation = new Conversation();
+
+        await agent.RunAsync(conversation, "Do it all.", cancellationToken: Ct);
+
+        var results = Results(conversation, 2);
+        Assert.All(results, toolResult => Assert.True(toolResult.IsError));
+        Assert.Equal("The input does not match the tool's schema:\n/a: must be string\n/b: must be string", results[0].Content);
+        Assert.Equal("The call was denied: asking for approval failed: The approver gave no answer.", results[1].Content);
+        Assert.Equal("The tool returned no output.", results[2].Content);
+    }
+
+    /// <summary>An approver that breaks its contract and answers nothing.</summary>
+    private sealed class SilentApprover : IApprover
+    {
+        public Task<Approval> ApproveAsync(Tool tool, ToolCall toolCall, CancellationToken cancellationToken) => Task.FromResult<Approval>(null!);
+    }
+
+    [Fact]
     public async Task Tool_calls_and_approvals_stream_as_events_between_the_reply_and_the_tool_results()
     {
         var model = new ScriptedModel()
