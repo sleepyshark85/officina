@@ -186,13 +186,15 @@ public static class Telemetry
         ]);
 
     /// <summary>Records an approval's answer and wait, on the call's span and in the metrics.</summary>
-    internal static void Approved(Activity? activity, Agent agent, ToolCall call, bool approved, TimeSpan wait)
+    internal static void Approved(Activity? activity, Agent agent, ToolCall call, Approval approval, TimeSpan wait)
     {
-        var answer = approved ? "approved" : "denied";
-        Approvals.Add(1, [.. Dimensions(agent), new("gen_ai.tool.name", call.Name), new("officina.tool.approval", answer)]);
-        activity?.SetTag("officina.tool.approval", answer);
-        activity?.SetTag("officina.tool.approval_wait", wait.TotalSeconds);
+        Approvals.Add(1, [.. Dimensions(agent), new("gen_ai.tool.name", call.Name), new("officina.tool.approval", approval.Answer)]);
+        activity?.SetTag("officina.tool.approval", approval.Answer);
+        WaitedForApproval(activity, wait);
     }
+
+    /// <summary>Records the wait for an approval the run was cancelled before it got, on the call's span.</summary>
+    internal static void WaitedForApproval(Activity? activity, TimeSpan wait) => activity?.SetTag("officina.tool.approval_wait", wait.TotalSeconds);
 
     /// <summary>Ends a tool call's span and records its metrics; <paramref name="length"/> is before truncation.</summary>
     internal static void EndToolCall(
