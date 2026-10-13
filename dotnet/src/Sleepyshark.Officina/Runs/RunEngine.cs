@@ -60,28 +60,14 @@ internal static class RunEngine
     private static async IAsyncEnumerable<RunEvent> LoopAsync(
         RunScope run, string message, string? context, StrongBox<RunResult> result, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        var (agent, conversation, audit, spending) = (run.Agent, run.Conversation, run.Audit, run.Spending);
-        var fingerprint = run.Prefix.Fingerprint;
-        if (conversation.Fingerprint is { } bound && bound != fingerprint)
+        var (agent, conversation, spending) = (run.Agent, run.Conversation, run.Spending);
+        if (await StartAsync(run, cancellationToken).ConfigureAwait(false) is { } refused)
         {
-            //Fingerprint mismatch should leads to a new conversation, but probably with the current conversation summarized attached. Let's improve that in the future
-            result.Value = new Failed(
-                FailureReason.PrefixMismatch,
-                "The agent's tools, instructions or model settings differ from those this conversation was started with. Start a new conversation.",
-                default);
+            result.Value = refused;
             yield break;
         }
 
-        //Making sure all tools are up and running before start any model calls. We don't want to waste money to call model and end up failing because of tool calls.
-        var unavailable = await ToolSources.ConnectAsync(agent, audit, cancellationToken).ConfigureAwait(false);
-        if (unavailable is not null || cancellationToken.IsCancellationRequested)
-        {
-            result.Value = unavailable is null ? new Stopped(StopReason.Cancelled, null, default) : new Failed(FailureReason.ToolSourceUnavailable, unavailable, default);
-            yield break;
-        }
-
-        //Patch the (resumed) conversation if the conversation is force stopped mid-way
-        if (await AnswerInterruptedAsync(conversation, audit).ConfigureAwait(false) is { } interrupted)
+        if (await AnswerInterruptedAsync(conversation, run.Audit).ConfigureAwait(false) is { } interrupted)
         {
             yield return new ConversationAppended(conversation, interrupted);
         }
@@ -93,12 +79,9 @@ internal static class RunEngine
             : [Message.Of(Role.User, message), Message.Of(Role.Operator, context)];
         for (var calls = 1; ; calls++)
         {
-            var reached = spending.Reached();
-            if (calls > MaxModelCalls || reached is not null)
+            if (Limit(calls, spending) is { } limited)
             {
-                result.Value = calls > MaxModelCalls
-                    ? new Stopped(StopReason.IterationLimit, null, spending.Usage)
-                    : new Stopped(StopReason.Budget, reached, spending.Usage);
+                result.Value = limited;
                 yield break;
             }
 
@@ -109,12 +92,7 @@ internal static class RunEngine
                 yield return runEvent;
             }
 
-            spending.AddCall(reply.Usage);
-            foreach (var (kind, detail) in reply.ContextEdits)
-            {
-                await audit.RecordAsync(kind, entry => entry with { Detail = detail }).ConfigureAwait(false);
-            }
-
+            await RecordReplyAsync(run, reply).ConfigureAwait(false);
             var usage = spending.Usage;
 
             // A reply cut short by the lowered output limit stopped for the budget, once the budget allows no more.
@@ -123,15 +101,7 @@ internal static class RunEngine
             var (append, end) = Decide(agent, reply, toolCalls.Count > 0, usage, budgetCut);
             if (append)
             {
-                // All appended before any is reported, so a host that stops reading at the first never holds the input without its reply.
-                conversation.Bind(fingerprint);
-                var step = pending.Add(new Message(Role.Assistant, reply.Blocks.ToImmutable()));
-                foreach (var appended in step)
-                {
-                    conversation.Append(appended);
-                }
-
-                foreach (var appended in step)
+                foreach (var appended in AppendStep(run, pending, reply))
                 {
                     yield return new ConversationAppended(conversation, appended);
                 }
@@ -146,33 +116,13 @@ internal static class RunEngine
             }
 
             spending.ToolCalls += toolCalls.Count;
-
-            // A reply's calls all get results, in one message, even if the run is cancelled meanwhile. If the host stops reading
-            // the events, the tools are cancelled and awaited, so none outlives the run or touches a conversation another run takes.
-            var events = Channel.CreateUnbounded<RunEvent>(new UnboundedChannelOptions { SingleReader = true });
-            using var tools = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            var running = RunToolsAsync(new ToolPipeline(run, events.Writer), toolCalls, events.Writer, tools.Token);
-            var relayed = false;
-            try
+            var results = new StrongBox<ImmutableArray<ToolResult>>();
+            await foreach (var runEvent in RelayToolsAsync(run, toolCalls, results, cancellationToken).ConfigureAwait(false))
             {
-                await foreach (var runEvent in events.Reader.ReadAllAsync(CancellationToken.None).ConfigureAwait(false))
-                {
-                    yield return runEvent;
-                }
-
-                relayed = true;
-            }
-            finally
-            {
-                if (!relayed)
-                {
-                    await tools.CancelAsync().ConfigureAwait(false);
-                    await running.ConfigureAwait(false);
-                }
+                yield return runEvent;
             }
 
-            var results = await running.ConfigureAwait(false);
-            var answer = new Message(Role.User, [.. results.Select(toolResult => new ContentBlock(toolResult))]);
+            var answer = new Message(Role.User, [.. results.Value.Select(toolResult => new ContentBlock(toolResult))]);
             conversation.Append(answer);
             yield return new ConversationAppended(conversation, answer);
             if (cancellationToken.IsCancellationRequested)
@@ -181,6 +131,93 @@ internal static class RunEngine
                 yield break;
             }
         }
+    }
+
+    /// <summary>
+    /// The result that ends the run before its first model call, or null when it can start: the conversation must have been
+    /// started with this agent's prefix, and every tool source must connect, so a missing one costs no model call.
+    /// </summary>
+    private static async Task<RunResult?> StartAsync(RunScope run, CancellationToken cancellationToken)
+    {
+        if (run.Conversation.Fingerprint is { } bound && bound != run.Prefix.Fingerprint)
+        {
+            return new Failed(
+                FailureReason.PrefixMismatch,
+                "The agent's tools, instructions or model settings differ from those this conversation was started with. Start a new conversation.",
+                default);
+        }
+
+        var unavailable = await ToolSources.ConnectAsync(run.Agent, run.Audit, cancellationToken).ConfigureAwait(false);
+        if (unavailable is not null)
+        {
+            return new Failed(FailureReason.ToolSourceUnavailable, unavailable, default);
+        }
+
+        return cancellationToken.IsCancellationRequested ? new Stopped(StopReason.Cancelled, null, default) : null;
+    }
+
+    /// <summary>The result that stops the run before its next model call, or null while the call limit and budget allow it.</summary>
+    private static Stopped? Limit(int calls, Spending spending) => calls > MaxModelCalls
+        ? new Stopped(StopReason.IterationLimit, null, spending.Usage)
+        : spending.Reached() is { } reached ? new Stopped(StopReason.Budget, reached, spending.Usage) : null;
+
+    /// <summary>Counts a reply's usage and audits the context edits the provider made for it.</summary>
+    private static async Task RecordReplyAsync(RunScope run, ModelReply reply)
+    {
+        run.Spending.AddCall(reply.Usage);
+        foreach (var (kind, detail) in reply.ContextEdits)
+        {
+            await run.Audit.RecordAsync(kind, entry => entry with { Detail = detail }).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
+    /// Appends a reply with the messages it answers, binding the conversation to the prefix, and returns them. All are appended
+    /// before any is reported, so a host that stops reading at the first never holds the input without its reply.
+    /// </summary>
+    private static ImmutableArray<Message> AppendStep(RunScope run, ImmutableArray<Message> pending, ModelReply reply)
+    {
+        run.Conversation.Bind(run.Prefix.Fingerprint);
+        var step = pending.Add(new Message(Role.Assistant, reply.Blocks.ToImmutable()));
+        foreach (var appended in step)
+        {
+            run.Conversation.Append(appended);
+        }
+
+        return step;
+    }
+
+    /// <summary>Runs a reply's tool calls, streaming their events, and leaves their results in <paramref name="results"/>.</summary>
+    /// <remarks>
+    /// A reply's calls all get results, even if the run is cancelled meanwhile. If the host stops reading the events, the tools
+    /// are cancelled and awaited, so none outlives the run or touches a conversation another run takes.
+    /// </remarks>
+    private static async IAsyncEnumerable<RunEvent> RelayToolsAsync(
+        RunScope run, List<ToolCall> calls, StrongBox<ImmutableArray<ToolResult>> results, [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        var events = Channel.CreateUnbounded<RunEvent>(new UnboundedChannelOptions { SingleReader = true });
+        using var tools = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var running = RunToolsAsync(new ToolPipeline(run, events.Writer), calls, events.Writer, tools.Token);
+        var relayed = false;
+        try
+        {
+            await foreach (var runEvent in events.Reader.ReadAllAsync(CancellationToken.None).ConfigureAwait(false))
+            {
+                yield return runEvent;
+            }
+
+            relayed = true;
+        }
+        finally
+        {
+            if (!relayed)
+            {
+                await tools.CancelAsync().ConfigureAwait(false);
+                await running.ConfigureAwait(false);
+            }
+        }
+
+        results.Value = await running.ConfigureAwait(false);
     }
 
     /// <summary>The result of a call whose reply was never recorded, as the application stopped mid-reply.</summary>
