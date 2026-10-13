@@ -79,7 +79,7 @@ internal static class RunEngine
             : [Message.Of(Role.User, message), Message.Of(Role.Operator, context)];
         for (var calls = 1; ; calls++)
         {
-            if (Limit(calls, spending) is { } limited)
+            if (LimitReached(calls, spending) is { } limited)
             {
                 result.Value = limited;
                 yield break;
@@ -135,7 +135,8 @@ internal static class RunEngine
 
     /// <summary>
     /// The result that ends the run before its first model call, or null when it can start: the conversation must have been
-    /// started with this agent's prefix, and every tool source must connect, so a missing one costs no model call.
+    /// started with this agent's prefix, every tool source must connect, so a missing one costs no model call, and the host
+    /// must not have cancelled meanwhile.
     /// </summary>
     private static async Task<RunResult?> StartAsync(RunScope run, CancellationToken cancellationToken)
     {
@@ -157,7 +158,7 @@ internal static class RunEngine
     }
 
     /// <summary>The result that stops the run before its next model call, or null while the call limit and budget allow it.</summary>
-    private static Stopped? Limit(int calls, Spending spending) => calls > MaxModelCalls
+    private static Stopped? LimitReached(int calls, Spending spending) => calls > MaxModelCalls
         ? new Stopped(StopReason.IterationLimit, null, spending.Usage)
         : spending.Reached() is { } reached ? new Stopped(StopReason.Budget, reached, spending.Usage) : null;
 
@@ -195,26 +196,21 @@ internal static class RunEngine
     private static async IAsyncEnumerable<RunEvent> RelayToolsAsync(
         RunScope run, List<ToolCall> calls, StrongBox<ImmutableArray<ToolResult>> results, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        var events = Channel.CreateUnbounded<RunEvent>(new UnboundedChannelOptions { SingleReader = true });
+        var events = Channel.CreateUnbounded<RunEvent>();
         using var tools = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         var running = RunToolsAsync(new ToolPipeline(run, events.Writer), calls, events.Writer, tools.Token);
-        var relayed = false;
         try
         {
             await foreach (var runEvent in events.Reader.ReadAllAsync(CancellationToken.None).ConfigureAwait(false))
             {
                 yield return runEvent;
             }
-
-            relayed = true;
         }
         finally
         {
-            if (!relayed)
-            {
-                await tools.CancelAsync().ConfigureAwait(false);
-                await running.ConfigureAwait(false);
-            }
+            // Once every event is relayed the tools are done, and this changes nothing.
+            await tools.CancelAsync().ConfigureAwait(false);
+            await running.ConfigureAwait(false);
         }
 
         results.Value = await running.ConfigureAwait(false);
