@@ -20,6 +20,8 @@ internal sealed class ToolPipeline(RunScope run, ChannelWriter<RunEvent> events)
     /// <summary>The longest result the model gets, in characters: about 16k tokens.</summary>
     internal const int MaxResultLength = 64_000;
 
+    private const string CancelledWhileAsking = "The call was cancelled while waiting for approval.";
+
     private readonly Agent agent = run.Agent;
     private readonly AuditRecorder audit = run.Audit;
 
@@ -147,7 +149,8 @@ internal sealed class ToolPipeline(RunScope run, ChannelWriter<RunEvent> events)
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             Telemetry.WaitedForApproval(step.Span, agent.Time.GetElapsedTime(asked));
-            return "The call was cancelled while waiting for approval.";
+            await RecordAnswerAsync(tool, call, step, Approval.Denied(CancelledWhileAsking)).ConfigureAwait(false);
+            return CancelledWhileAsking;
         }
 #pragma warning disable CA1031 // A failing approver denies the call.
         catch (Exception exception)
@@ -157,12 +160,18 @@ internal sealed class ToolPipeline(RunScope run, ChannelWriter<RunEvent> events)
         }
 
         Telemetry.Approved(step.Span, agent, call, approval, agent.Time.GetElapsedTime(asked));
+        await RecordAnswerAsync(tool, call, step, approval).ConfigureAwait(false);
+        return approval.Approved ? null : $"The call was denied{(approval.Reason is null ? "." : $": {approval.Reason}")}";
+    }
+
+    /// <summary>Records the answer to an approval in the audit trail and streams it.</summary>
+    private async Task RecordAnswerAsync(Tool tool, ToolCall call, Step step, Approval approval)
+    {
         await audit.RecordAsync(
             AuditKind.ApprovalAnswered,
             entry => entry with { Tool = tool.Name, CallId = call.Id, Outcome = approval.Answer, Detail = approval.Reason },
             step.Span).ConfigureAwait(false);
         events.TryWrite(new ApprovalAnswered(Shown(call), approval.Approved));
-        return approval.Approved ? null : $"The call was denied{(approval.Reason is null ? "." : $": {approval.Reason}")}";
     }
 
     private async Task<ToolResult> InvokeAsync(Tool tool, ToolCall call, Step step, JsonElement input, CancellationToken cancellationToken)

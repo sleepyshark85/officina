@@ -257,6 +257,34 @@ public class AuditTests
     }
 
     [Fact]
+    public async Task An_approval_the_run_was_cancelled_before_it_got_is_audited_and_streamed_as_denied()
+    {
+        using var cancellation = new CancellationTokenSource();
+        var sink = new RecordingSink();
+        var model = new ScriptedModel().CallTools(new ToolCall("c1", "order", "{}"));
+        var order = Agents.Tool("order", kind: ToolKind.Write, needsApproval: true);
+        var agent = Agents.With(model, tools: order) with { AuditSink = sink, Approver = new CancellingApprover(cancellation) };
+
+        var events = await Agents.CollectAsync(agent.StreamAsync(new Conversation(), "Order x.", cancellationToken: cancellation.Token));
+
+        Assert.Equal(
+            [(AuditKind.ApprovalAsked, (string?)null, (string?)null), (AuditKind.ApprovalAnswered, "denied", "The call was cancelled while waiting for approval.")],
+            sink.Entries.Where(entry => entry.Kind is AuditKind.ApprovalAsked or AuditKind.ApprovalAnswered).Select(entry => (entry.Kind, entry.Outcome, entry.Detail)));
+        Assert.False(Assert.Single(events.OfType<ApprovalAnswered>()).Approved);
+    }
+
+    /// <summary>A human still deciding when the host cancels the run.</summary>
+    private sealed class CancellingApprover(CancellationTokenSource host) : IApprover
+    {
+        public async Task<Approval> ApproveAsync(Tool tool, ToolCall toolCall, CancellationToken cancellationToken)
+        {
+            await host.CancelAsync();
+            cancellationToken.ThrowIfCancellationRequested();
+            return Approval.Granted;
+        }
+    }
+
+    [Fact]
     public async Task A_tool_source_that_cannot_connect_fails_the_run_before_the_next_source_is_connected()
     {
         // Sources connect in the order of their tools, which an agent keeps sorted by name.
