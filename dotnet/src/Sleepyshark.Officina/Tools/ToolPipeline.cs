@@ -45,7 +45,8 @@ internal sealed class ToolPipeline(RunScope run, ChannelWriter<RunEvent> events)
             steps[at] = step;
             events.TryWrite(new ToolCallStarted(Shown(call)));
 
-            if (!TryReadInput(tool, call, out var input, out var refusal) || (refusal = await DenialAsync(tool, call, input, step, cancellationToken).ConfigureAwait(false)) is not null)
+            if (!TryReadInput(tool, call, out var input, out var refusal)
+                || (refusal = await DenialAsync(tool, call, input, step, cancellationToken).ConfigureAwait(false)) is not null)
             {
                 results[at] = await EndAsync(call, step, refusal, ToolOutcome.Error, null).ConfigureAwait(false);
                 continue;
