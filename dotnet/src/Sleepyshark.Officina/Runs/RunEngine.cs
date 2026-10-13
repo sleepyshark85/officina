@@ -196,9 +196,10 @@ internal static class RunEngine
     private static async IAsyncEnumerable<RunEvent> RelayToolsAsync(
         RunScope run, List<ToolCall> calls, StrongBox<ImmutableArray<ToolResult>> results, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
+        // Unbounded, as the reply bounds it: each of its calls writes at most four events.
         var events = Channel.CreateUnbounded<RunEvent>();
         using var tools = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        var running = RunToolsAsync(new ToolPipeline(run, events.Writer), calls, events.Writer, tools.Token);
+        var running = RunToolsAsync(run, calls, events.Writer, tools.Token);
         try
         {
             await foreach (var runEvent in events.Reader.ReadAllAsync(CancellationToken.None).ConfigureAwait(false))
@@ -219,12 +220,15 @@ internal static class RunEngine
     /// <summary>The result of a call whose reply was never recorded, as the application stopped mid-reply.</summary>
     internal const string Interrupted = "The call was interrupted: the application stopped before its result was recorded, so it may or may not have taken effect.";
 
+    /// <summary>Runs a reply's tool calls, then records the changes the tool sources reported meanwhile.</summary>
     private static async Task<ImmutableArray<ToolResult>> RunToolsAsync(
-        ToolPipeline pipeline, List<ToolCall> calls, ChannelWriter<RunEvent> events, CancellationToken cancellationToken)
+        RunScope run, List<ToolCall> calls, ChannelWriter<RunEvent> events, CancellationToken cancellationToken)
     {
         try
         {
-            return await pipeline.RunAsync(calls, cancellationToken).ConfigureAwait(false);
+            var results = await new ToolPipeline(run, events).RunAsync(calls, cancellationToken).ConfigureAwait(false);
+            await ToolSources.RecordChangesAsync(run.Agent, run.Audit).ConfigureAwait(false);
+            return results;
         }
         finally
         {
@@ -375,7 +379,7 @@ internal static class RunEngine
         foreach (var call in unanswered)
         {
             await audit.RecordAsync(
-                AuditKind.ToolEnded, entry => entry with { Tool = call.Name, CallId = call.Id, Input = call.Input, Outcome = "interrupted", Detail = Interrupted })
+                AuditKind.ToolEnded, entry => entry with { Tool = call.Name, CallId = call.Id, Input = call.Input, Outcome = AuditOutcome.Interrupted, Detail = Interrupted })
                 .ConfigureAwait(false);
         }
 

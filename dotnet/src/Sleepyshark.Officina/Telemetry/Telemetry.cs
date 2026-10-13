@@ -16,6 +16,10 @@ public static class Telemetry
     /// <summary>The name of the core's activity source and meter.</summary>
     public const string SourceName = "Sleepyshark.Officina";
 
+    private const string ToolNameKey = "gen_ai.tool.name";
+
+    private const string ApprovalKey = "officina.tool.approval";
+
     internal static readonly ActivitySource Source = new(SourceName);
 
     private static readonly Meter Meter = new(SourceName);
@@ -177,7 +181,7 @@ public static class Telemetry
     internal static Activity? StartToolCall(Agent agent, Activity? run, Tool? tool, ToolCall call) =>
         Start($"execute_tool {call.Name}", ActivityKind.Internal, run?.Context ?? default, agent, [
             new("gen_ai.operation.name", "execute_tool"),
-            new("gen_ai.tool.name", call.Name),
+            new(ToolNameKey, call.Name),
             new("gen_ai.tool.call.id", call.Id),
             new("gen_ai.tool.type", "function"),
             new("officina.tool.source", tool?.Source?.Name ?? (tool?.IsMemory == true ? "memory" : "application")),
@@ -186,19 +190,21 @@ public static class Telemetry
         ]);
 
     /// <summary>Records an approval's answer and wait, on the call's span and in the metrics.</summary>
-    internal static void Approved(Activity? activity, Agent agent, ToolCall call, bool approved, TimeSpan wait)
+    internal static void Approved(Activity? activity, Agent agent, ToolCall call, Approval approval, TimeSpan wait)
     {
-        var answer = approved ? "approved" : "denied";
-        Approvals.Add(1, [.. Dimensions(agent), new("gen_ai.tool.name", call.Name), new("officina.tool.approval", answer)]);
-        activity?.SetTag("officina.tool.approval", answer);
-        activity?.SetTag("officina.tool.approval_wait", wait.TotalSeconds);
+        Approvals.Add(1, [.. Dimensions(agent), new(ToolNameKey, call.Name), new(ApprovalKey, approval.Answer)]);
+        activity?.SetTag(ApprovalKey, approval.Answer);
+        WaitedForApproval(activity, wait);
     }
+
+    /// <summary>Records the wait for an approval the run was cancelled before it got, on the call's span.</summary>
+    internal static void WaitedForApproval(Activity? activity, TimeSpan wait) => activity?.SetTag("officina.tool.approval_wait", wait.TotalSeconds);
 
     /// <summary>Ends a tool call's span and records its metrics; <paramref name="length"/> is before truncation.</summary>
     internal static void EndToolCall(
         Activity? activity, Agent agent, ToolCall call, long started, ToolOutcome outcome, TimeSpan? ran, int length, bool truncated, string result)
     {
-        KeyValuePair<string, object?>[] dimensions = [.. Dimensions(agent), new("gen_ai.tool.name", call.Name), new("officina.tool.outcome", Word(outcome))];
+        KeyValuePair<string, object?>[] dimensions = [.. Dimensions(agent), new(ToolNameKey, call.Name), new("officina.tool.outcome", Word(outcome))];
         ToolCalls.Add(1, dimensions);
         ToolDuration.Record(agent.Time.GetElapsedTime(started).TotalSeconds, dimensions);
         if (activity is null)

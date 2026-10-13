@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -26,9 +27,12 @@ internal sealed class ToolPipeline(RunScope run, ChannelWriter<RunEvent> events)
     {
         var results = new ToolResult?[calls.Count];
         var steps = new Step?[calls.Count];
+
+        // Reads all start at once: the reply's calls bound how many.
         var reads = new List<Task>();
         for (var index = 0; index < calls.Count && !cancellationToken.IsCancellationRequested; index++)
         {
+            // A copy for the closures below, as the loop variable moves on before they run.
             var (call, at) = (calls[index], index);
             var tool = agent.Tools.FirstOrDefault(tool => tool.Name == call.Name);
             if (tool?.Kind == ToolKind.Write)
@@ -41,10 +45,10 @@ internal sealed class ToolPipeline(RunScope run, ChannelWriter<RunEvent> events)
             steps[at] = step;
             events.TryWrite(new ToolCallStarted(Shown(call)));
 
-            var (input, rejected) = await PrepareAsync(tool, call, step, cancellationToken).ConfigureAwait(false);
-            if (rejected is not null)
+            if (!TryReadInput(tool, call, out var input, out var refusal)
+                || (refusal = await DenialAsync(tool, call, input, step, cancellationToken).ConfigureAwait(false)) is not null)
             {
-                results[at] = await EndAsync(call, step, rejected, null).ConfigureAwait(false);
+                results[at] = await EndAsync(call, step, refusal, ToolOutcome.Error, null).ConfigureAwait(false);
                 continue;
             }
 
@@ -54,8 +58,8 @@ internal sealed class ToolPipeline(RunScope run, ChannelWriter<RunEvent> events)
                 break;
             }
 
-            var running = Task.Run(async () => results[at] = await InvokeAsync(tool!, call, step, input, cancellationToken).ConfigureAwait(false), CancellationToken.None);
-            if (tool!.Kind == ToolKind.Write)
+            var running = Task.Run(async () => results[at] = await InvokeAsync(tool, call, step, input, cancellationToken).ConfigureAwait(false), CancellationToken.None);
+            if (tool.Kind == ToolKind.Write)
             {
                 await running.ConfigureAwait(false);
             }
@@ -66,27 +70,27 @@ internal sealed class ToolPipeline(RunScope run, ChannelWriter<RunEvent> events)
         }
 
         await Task.WhenAll(reads).ConfigureAwait(false);
-        await ToolSources.RecordChangesAsync(agent, audit).ConfigureAwait(false);
 
         // Calls that never started, because the run was cancelled.
         for (var index = 0; index < calls.Count; index++)
         {
-            results[index] ??= await EndAsync(calls[index], steps[index], new ToolOutput("The call was cancelled before it started.", true), null)
-                .ConfigureAwait(false);
+            results[index] ??= await EndAsync(calls[index], steps[index], "The call was cancelled before it started.", ToolOutcome.Error, null).ConfigureAwait(false);
         }
 
         return [.. results.Select(result => result!)];
     }
 
-    /// <summary>Finds, validates and approves a call: its input, or why it may not run.</summary>
-    private async Task<(JsonElement Input, ToolOutput? Rejected)> PrepareAsync(Tool? tool, ToolCall call, Step step, CancellationToken cancellationToken)
+    /// <summary>Finds the call's tool and reads its input against the tool's schema, or says why it cannot.</summary>
+    private static bool TryReadInput(
+        [NotNullWhen(true)] Tool? tool, ToolCall call, out JsonElement input, [NotNullWhen(false)] out string? problem)
     {
+        (input, problem) = (default, null);
         if (tool is null)
         {
-            return (default, new ToolOutput($"There is no tool named '{call.Name}'.", true));
+            problem = $"There is no tool named '{call.Name}'.";
+            return false;
         }
 
-        JsonElement input;
         try
         {
             using var document = JsonDocument.Parse(call.Input);
@@ -94,7 +98,8 @@ internal sealed class ToolPipeline(RunScope run, ChannelWriter<RunEvent> events)
         }
         catch (JsonException exception)
         {
-            return (default, new ToolOutput($"The input is not valid JSON: {exception.Message}", true));
+            problem = $"The input is not valid JSON: {exception.Message}";
+            return false;
         }
 
         List<string> problems;
@@ -104,22 +109,30 @@ internal sealed class ToolPipeline(RunScope run, ChannelWriter<RunEvent> events)
         }
         catch (RegexMatchTimeoutException exception)
         {
-            return (default, new ToolOutput($"The input could not be validated: {exception.Message}", true));
+            problem = $"The input could not be validated: {exception.Message}";
+            return false;
         }
 
         if (problems.Count > 0)
         {
-            return (default, new ToolOutput($"The input does not match the tool's schema:\n{string.Join("\n", problems)}", true));
+            problem = $"The input does not match the tool's schema:\n{string.Join("\n", problems)}";
+            return false;
         }
 
+        return true;
+    }
+
+    /// <summary>Asks for approval when the call needs it: why it may not run, said for the model, or null when it may.</summary>
+    private async Task<string?> DenialAsync(Tool tool, ToolCall call, JsonElement input, Step step, CancellationToken cancellationToken)
+    {
         if (!tool.NeedsApprovalFor(input))
         {
-            return (input, null);
+            return null;
         }
 
         if (agent.Approver is not { } approver)
         {
-            return (default, new ToolOutput("The call needs approval, and this run is unattended, so it was denied.", true));
+            return "The call needs approval, and this run is unattended, so it was denied.";
         }
 
         await audit.RecordAsync(AuditKind.ApprovalAsked, entry => entry with { Tool = tool.Name, CallId = call.Id, Input = call.Input }, step.Span)
@@ -134,8 +147,8 @@ internal sealed class ToolPipeline(RunScope run, ChannelWriter<RunEvent> events)
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            step.Span?.SetTag("officina.tool.approval_wait", agent.Time.GetElapsedTime(asked).TotalSeconds);
-            return (default, new ToolOutput("The call was cancelled while waiting for approval.", true));
+            Telemetry.WaitedForApproval(step.Span, agent.Time.GetElapsedTime(asked));
+            return "The call was cancelled while waiting for approval.";
         }
 #pragma warning disable CA1031 // A failing approver denies the call.
         catch (Exception exception)
@@ -144,15 +157,13 @@ internal sealed class ToolPipeline(RunScope run, ChannelWriter<RunEvent> events)
             approval = Approval.Denied($"asking for approval failed: {exception.Message}");
         }
 
-        Telemetry.Approved(step.Span, agent, call, approval.Approved, agent.Time.GetElapsedTime(asked));
+        Telemetry.Approved(step.Span, agent, call, approval, agent.Time.GetElapsedTime(asked));
         await audit.RecordAsync(
             AuditKind.ApprovalAnswered,
-            entry => entry with { Tool = tool.Name, CallId = call.Id, Outcome = approval.Approved ? "approved" : "denied", Detail = approval.Reason },
+            entry => entry with { Tool = tool.Name, CallId = call.Id, Outcome = approval.Answer, Detail = approval.Reason },
             step.Span).ConfigureAwait(false);
         events.TryWrite(new ApprovalAnswered(Shown(call), approval.Approved));
-        return approval.Approved
-            ? (input, null)
-            : (default, new ToolOutput($"The call was denied{(approval.Reason is null ? "." : $": {approval.Reason}")}", true));
+        return approval.Approved ? null : $"The call was denied{(approval.Reason is null ? "." : $": {approval.Reason}")}";
     }
 
     private async Task<ToolResult> InvokeAsync(Tool tool, ToolCall call, Step step, JsonElement input, CancellationToken cancellationToken)
@@ -162,8 +173,8 @@ internal sealed class ToolPipeline(RunScope run, ChannelWriter<RunEvent> events)
             .ConfigureAwait(false);
         if (!recorded && tool.Kind == ToolKind.Write)
         {
-            var blocked = new ToolOutput("The call was not run: its attempt could not be recorded in the audit trail.", true);
-            return await EndAsync(call, step, blocked, null, blocked: true).ConfigureAwait(false);
+            return await EndAsync(call, step, "The call was not run: its attempt could not be recorded in the audit trail.", ToolOutcome.Blocked, null)
+                .ConfigureAwait(false);
         }
 
         ToolOutput output;
@@ -183,37 +194,40 @@ internal sealed class ToolPipeline(RunScope run, ChannelWriter<RunEvent> events)
             output = new ToolOutput(exception.Message, true);
         }
 
-        return await EndAsync(call, step, output, agent.Time.GetElapsedTime(started)).ConfigureAwait(false);
+        var outcome = output.IsError ? ToolOutcome.Error : ToolOutcome.Ok;
+        return await EndAsync(call, step, output.Content, outcome, agent.Time.GetElapsedTime(started)).ConfigureAwait(false);
     }
 
     /// <summary>
-    /// Redacts secrets, truncates the output, records the outcome and makes the result. <paramref name="step"/> is null for
-    /// a call that never started; <paramref name="blocked"/> marks a write not run because its attempt was not audited.
+    /// Redacts and truncates a call's result, records its outcome and makes the result. <paramref name="step"/> is null for
+    /// a call that never started, and <paramref name="duration"/> for one whose tool never ran.
     /// </summary>
-    private async Task<ToolResult> EndAsync(ToolCall call, Step? step, ToolOutput output, TimeSpan? duration, bool blocked = false)
+    private async Task<ToolResult> EndAsync(ToolCall call, Step? step, string output, ToolOutcome outcome, TimeSpan? duration)
     {
-        var content = agent.Redact(output.Content);
-        var length = content.Length;
-        content = content.Length <= MaxResultLength
-            ? content
-            : string.Create(
-                CultureInfo.InvariantCulture,
-                $"{Strings.Cut(content, MaxResultLength)}\n[Truncated: the result had {content.Length} characters; only the first {MaxResultLength} are shown.]");
+        var redacted = agent.Redact(output);
+        var content = Truncated(redacted);
+        var audited = outcome == ToolOutcome.Ok ? AuditOutcome.Ok : AuditOutcome.Error;
         await audit.RecordAsync(
             AuditKind.ToolEnded,
-            entry => entry with { Tool = call.Name, CallId = call.Id, Input = call.Input, Outcome = output.IsError ? "error" : "ok", Detail = content, Duration = duration },
+            entry => entry with { Tool = call.Name, CallId = call.Id, Input = call.Input, Outcome = audited, Detail = content, Duration = duration },
             step?.Span).ConfigureAwait(false);
         if (step is { } started)
         {
             Telemetry.EndToolCall(
-                started.Span, agent, call, started.Started, blocked ? ToolOutcome.Blocked : output.IsError ? ToolOutcome.Error : ToolOutcome.Ok, duration,
-                length, length > MaxResultLength, content);
+                started.Span, agent, call, started.Started, outcome, duration, redacted.Length, redacted.Length > MaxResultLength, content);
         }
 
-        var result = new ToolResult(call.Id, content, output.IsError);
+        var result = new ToolResult(call.Id, content, outcome != ToolOutcome.Ok);
         events.TryWrite(new ToolCallFinished(Shown(call), result));
         return result;
     }
+
+    /// <summary>The result as the model gets it: cut to <see cref="MaxResultLength"/>, with a note saying so.</summary>
+    private static string Truncated(string content) => content.Length <= MaxResultLength
+        ? content
+        : string.Create(
+            CultureInfo.InvariantCulture,
+            $"{Strings.Cut(content, MaxResultLength)}\n[Truncated: the result had {content.Length} characters; only the first {MaxResultLength} are shown.]");
 
     /// <summary>The call as events show it: its input without the agent's secrets.</summary>
     private ToolCall Shown(ToolCall call) => call with { Input = agent.Redact(call.Input) };

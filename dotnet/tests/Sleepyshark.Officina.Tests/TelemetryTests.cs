@@ -311,6 +311,39 @@ public class TelemetryTests
     }
 
     [Fact]
+    public async Task An_approval_the_run_was_cancelled_before_it_got_records_its_wait_and_no_answer()
+    {
+        using var telemetry = new TelemetryCollector();
+        using var cancellation = new CancellationTokenSource();
+        var time = new FakeTimeProvider(Start);
+        var model = new ScriptedModel().CallTools(new ToolCall("c1", "order", "{}")).Reply("Unused.");
+        var agent = Agents.With(model, tools: Agents.Tool("order", kind: ToolKind.Write, needsApproval: true)) with
+        {
+            Name = Unique(),
+            Time = time,
+            Approver = new CancellingApprover(time, TimeSpan.FromSeconds(2), cancellation),
+        };
+
+        await agent.RunAsync(new Conversation(), "Order it.", cancellationToken: cancellation.Token);
+
+        var call = Assert.Single(telemetry.Spans(agent.Name), span => span.OperationName == "execute_tool order");
+        Assert.Equal(2.0, call.GetTagItem("officina.tool.approval_wait"));
+        Assert.Null(call.GetTagItem("officina.tool.approval"));
+    }
+
+    /// <summary>A human still deciding after <paramref name="wait"/>, when the host cancels the run.</summary>
+    private sealed class CancellingApprover(FakeTimeProvider time, TimeSpan wait, CancellationTokenSource host) : IApprover
+    {
+        public async Task<Approval> ApproveAsync(Tool tool, ToolCall toolCall, CancellationToken cancellationToken)
+        {
+            time.Advance(wait);
+            await host.CancelAsync();
+            cancellationToken.ThrowIfCancellationRequested();
+            return Approval.Granted;
+        }
+    }
+
+    [Fact]
     public async Task A_model_call_s_time_to_first_token_is_the_wait_for_its_first_text_not_its_last()
     {
         using var telemetry = new TelemetryCollector();

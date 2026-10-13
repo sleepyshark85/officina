@@ -115,7 +115,7 @@ only a live run or inspection checks, noted in the last column.
 | TOOL-02 | Core/ToolLoopTests: `Invalid_input_a_thrown_handler_a_denial_and_an_unknown_tool_each_come_back_as_error_results_and_the_run_continues`; Core/SchemaValidatorTests (all) | |
 | TOOL-03 | Core/ToolLoopTests: `Reads_overlap_and_writes_run_alone_in_call_order` | |
 | TOOL-04 | Core/ToolLoopTests: `An_approved_call_runs`, `Invalid_input_a_thrown_handler_a_denial_…` | |
-| TOOL-05 | Core/ToolLoopTests: `Invalid_input_a_thrown_handler_a_denial_…`, `A_pattern_that_takes_too_long_and_a_null_output_come_back_as_error_results` | |
+| TOOL-05 | Core/ToolLoopTests: `Invalid_input_a_thrown_handler_a_denial_…`, `Each_schema_problem_an_approver_without_an_answer_and_a_handler_without_output_come_back_as_error_results`, `A_pattern_that_takes_too_long_and_a_null_output_come_back_as_error_results` | |
 | TOOL-06 | Core/ToolLoopTests: `A_result_over_the_size_limit_is_truncated_with_a_note` | |
 
 ## MCP (MCP)
@@ -147,7 +147,7 @@ only a live run or inspection checks, noted in the last column.
 | ID | Tests | Also checked by |
 |---|---|---|
 | EVT-01 | Core/RunTests: `Events_stream_text_and_usage_then_each_append_with_the_reply_and_the_result_last`; Core/ToolLoopTests: `Tool_calls_and_approvals_stream_as_events_between_the_reply_and_the_tool_results`; Core/LongConversationTests: `Compaction_and_clearing_are_events_…` | |
-| EVT-02 | Core/TelemetryTests: `A_run_is_one_trace_…`, `Metrics_count_tokens_…`, `A_retry_is_counted_…`, `Time_to_first_token_is_measured_on_the_attempt_that_succeeded`, `A_run_the_host_abandons_is_counted_…` | |
+| EVT-02 | Core/TelemetryTests: `A_run_is_one_trace_…`, `An_approval_the_run_was_cancelled_before_it_got_records_its_wait_and_no_answer`, `Metrics_count_tokens_…`, `A_retry_is_counted_…`, `Time_to_first_token_is_measured_on_the_attempt_that_succeeded`, `A_run_the_host_abandons_is_counted_…` | |
 | EVT-03 | Core/SecretPropertyTests: `No_secret_reaches_the_events_the_telemetry_or_the_audit_trail`; Core/TelemetryTests: `A_failed_model_call_marks_its_span_and_the_run_s_without_the_secret`; Mcp: both `EVT_03_…` tests | |
 | EVT-04 | Core/TelemetryTests: `Telemetry_carries_no_text_unless_the_agent_opts_in_and_never_a_secret` | |
 
