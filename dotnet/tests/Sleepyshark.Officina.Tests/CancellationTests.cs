@@ -54,6 +54,21 @@ public class CancellationTests
     }
 
     [Fact]
+    public async Task A_run_cancelled_before_it_starts_leaves_an_interrupted_conversation_unanswered()
+    {
+        var conversation = new Conversation();
+        conversation.Append(Message.Of(Role.User, "Search."));
+        conversation.Append(new Message(Role.Assistant, [ScriptedModel.ToolCallBlock(new ToolCall("c1", "search", """{"query":"x"}"""))]));
+        var model = new ScriptedModel().Reply("Unused.");
+
+        var result = await Agents.With(model, tools: Agents.SearchTool()).RunAsync(conversation, "Go on.", cancellationToken: new CancellationToken(canceled: true));
+
+        Assert.Equal(new Stopped(StopReason.Cancelled, null, default), Agents.Outcome(result));
+        Assert.Equal([Role.User, Role.Assistant], conversation.Messages.Select(message => message.Role));
+        Assert.Empty(model.Requests);
+    }
+
+    [Fact]
     public async Task A_run_cancelled_while_it_connects_its_tool_sources_stops_as_cancelled_and_calls_no_model()
     {
         using var cancellation = new CancellationTokenSource();
