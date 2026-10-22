@@ -19,7 +19,7 @@ Every must-fix in the "changes requested" verdicts of the 22 Ruby slice PRs (#83
 | Acceptance criterion missed or unclear | 4 | 3% | 2 |
 | **Total** | **118** | | **16** |
 
-- Ruby slices averaged about 2 "changes requested" rounds per PR, and none was approved first time. Go slices averaged
+- Ruby slices averaged about 2 "changes requested" rounds per PR, and none merged on its first verdict. Go slices averaged
   1. Three things differ between them, so the gap is not one cause:
   - Go was reviewed before the [quality bar](conventions.md#code-quality-bar) was set on 2026-10-10; some Ruby PRs
     straddled it.
@@ -60,9 +60,13 @@ Cheapest and most effective first.
 | 10 | Conventions settled before a port or phase | Retrofit rework | Owner time before the first slice |
 | 11 | Scripted pipeline, lead for exceptions only | Lead token cost | A workflow script |
 | 12 | Designer only for new architecture | Phase 2 features | One session per feature |
+| 13 | A quality scorecard per wave | Seeing the whole SDLC | A script like `agent-usage.py` |
+| 14 | CodeQL for Ruby | Security flaws in Ruby code | A matrix row |
+| 15 | A threat model and injection tests | Prompt injection through tool results | An ARCHITECTURE section and scripted tests |
+| 16 | A live eval set for Bookshop | The real model's behaviour | Phase 2, with NS-12 |
 
-Whether 9 to 11 are worth it depends on the work left. With few Ruby slices remaining, 1 to 6 may be enough, and the
-rest wait for phase 2.
+Whether 9 to 11 are worth it depends on the work left. With few Ruby slices remaining, 1 to 6, 13 and 14 may be
+enough, and the rest wait for phase 2.
 
 ### 1. Mutation config for the Ruby app
 
@@ -168,8 +172,8 @@ steps through it in a context that grows with every brief and report (see [the c
   say.
 - **Parallel only where slices are independent.** Slices that share a contract run one after another, after their
   contract PR (proposal 9).
-- **The owner checks in at wave boundaries:** approving the wave plan before work starts, and reading a summary at the
-  end with the [measurements](#measuring). Interruptions mid-wave are escalations only.
+- **The owner checks in at wave boundaries:** approving the wave plan before work starts, and reading the
+  [scorecard](#scorecard) at the end. Interruptions mid-wave are escalations only.
 - The reviewer and fixer rounds without the lead, trialled in #122, are part of this.
 
 ### 12. Designer only for new architecture
@@ -177,6 +181,38 @@ steps through it in a context that grows with every brief and report (see [the c
 A designer agent pays off where ARCHITECTURE.md has no section yet, as for phase 2 features. A short session writes
 that section and it is reviewed before any implementation starts, as "a change to a shared rule changes
 ARCHITECTURE.md first" requires. Slices that port an existing design don't need one.
+
+### 13. A quality scorecard per wave
+
+A script reads GitHub (PRs, verdicts, CI runs), the repository and the session transcripts, and writes the
+[scorecard](#scorecard) for a wave, as `scripts/agent-usage.py` writes [`agent-usage.md`](agent-usage.md). It needs
+proposal 4's cause labels for the must-fix split. The owner reads it at the end of each wave (proposal 11).
+
+### 14. CodeQL for Ruby
+
+`.github/workflows/codeql.yml` scans C#, Go and the workflows, but not Ruby, which CodeQL supports. Ruby's only
+security check today is `bundler-audit`, which covers dependencies, not the code.
+
+### 15. A threat model and injection tests
+
+Officina runs a model that reads untrusted text: tool results, MCP servers' output, memory files, database rows. The
+defences are structural: approval for writes, audit before a write runs, tools that take no SQL, and redaction. No page
+states the threats they answer, and no test feeds the run an injection.
+
+- A short threat-model section in ARCHITECTURE.md: each untrusted input, what it could make the model try, and which
+  structural rule stops it.
+- Scripted tests per implementation: a tool result or memory file carrying instructions makes the scripted model
+  request a write, and the write still waits for approval and is audited. These test the structure, which doesn't
+  depend on the model behaving.
+- A live red-team pass over Bookshop's tools waits for proposal 16, under a spend cap.
+
+### 16. A live eval set for Bookshop
+
+The offline end-to-end tests (TEST-09) script the model, and the live smoke test (TEST-04) checks one flow. Nothing
+measures how the real model does across many requests: the right tool chosen, out-of-scope requests declined,
+approvals asked for. A small dataset of requests with expected tool calls, scored by assertions on the structured
+signals rather than by a judging model, run on demand with a cap. It is the first user of the north star's evaluation
+(NS-12), so it waits for phase 2.
 
 ### Considered for later
 
@@ -187,13 +223,57 @@ ARCHITECTURE.md first" requires. Slices that port an existing design don't need 
 - **Review by another model family** on risky PRs (the `gemini-subagent` skill). Its errors overlap less with Opus's
   than a second Opus review's do.
 
-## Measuring
+## Quality monitoring
 
-At the end of each wave, record per merged slice PR:
+Two things are watched:
 
-- the rounds of "changes requested";
-- the must-fixes by cause (proposal 4);
-- the tokens by role (lead, developer, reviewer, fixer), from [`agent-usage.md`](agent-usage.md);
-- the escaped defects: fixes after merge to code the PR added.
+- the process that builds Officina, where agents write and review the code;
+- the product, a library for AI agents and its reference application.
 
-A proposal that doesn't move its target is dropped, and one that cuts rounds while escaped defects rise is reverted.
+The phases follow a general SDLC quality guide the owner supplied, adapted to this repository.
+
+### By phase
+
+| Phase | What can go wrong | Metric | Source | Today |
+|---|---|---|---|---|
+| Requirements and plan | ACs ambiguous, unowned or unmeetable | AC and contract must-fixes per slice; AC or requirement changes after a slice started | Verdict labels (proposal 4); `git log` of the plan docs and REQUIREMENTS.md | Manual, from this review |
+| Design | Contracts between slices break; threats not answered | Contract must-fixes; ARCHITECTURE.md changes per wave | Verdict labels; `git log` | No threat model (proposal 15) |
+| Coding | Below the quality bar; debt added | First-verdict approvals; rounds per PR; must-fixes by cause; suppressions added | Verdicts; a count of `rubocop:disable`, `mutant:disable`, `nolint`, warning pragmas and Stryker disables | Rounds counted by hand |
+| Security in code | Flaws, vulnerable dependencies, secrets | Open CodeQL and vulnerability alerts | CodeQL; `dotnet list package --vulnerable`, `govulncheck`, `bundler-audit` | No CodeQL for Ruby (proposal 14) |
+| Testing | Tests that don't pin behaviour; flaky or slow tests | Mutation score of the full runs; survivors in PR runs; tests over a second | Mutation workflows; test timings | Gated per PR; trend not tracked |
+| Merge | Bugs past review; `main` broken | Change failure rate (fix PRs to a wave's code, per slice PR); lead time from PR open to merge; failed CI runs on `main` | GitHub | Not measured |
+| AI process | Spend; context bloat; live checks over their cap | Tokens per merged PR by role; live API spend against its cap | [`agent-usage.md`](agent-usage.md); the agents' reports | Tokens recorded; not per PR |
+| Product at runtime | Cost or caching regressions; the real model misbehaving | Live smoke test result, cost and cache reads; eval pass rate | TEST-04; the app's telemetry; proposal 16 | Smoke test on demand; no trend |
+
+### Scorecard
+
+Written per wave by proposal 13's script. Baselines are from this review where one exists.
+
+| Metric | Target | Baseline |
+|---|---|---|
+| Slice PRs merged on their first verdict | Rising | Ruby 0 of 22 |
+| "Changes requested" rounds per slice PR | 1 or less | Ruby about 2, Go about 1 |
+| Must-fixes by cause | Tests and quality shrinking | Ruby: tests 37%, quality 25% |
+| Change failure rate | Falling | Not measured |
+| Suppressions added, each with an agreed reason | No unexplained rise | Not measured |
+| Mutation score of the full runs | At or above each implementation's floor | In each `decisions.md` |
+| Failed CI runs on `main` | None | Not measured |
+| Open CodeQL and vulnerability alerts | None | Not measured |
+| Tokens per merged slice PR, by role | The lead's falling | Not split per PR |
+| Live API spend against cap | Never over | S10 overshot once ($0.58 against $0.40) |
+| Live smoke test | Passes, at about $0.40, with cache reads from the second call | On demand |
+
+A proposal that doesn't move its target is dropped, and one that cuts rounds while the change failure rate rises is
+reverted.
+
+### Left out of the guide
+
+| From the guide | Why it is left out |
+|---|---|
+| Uptime, APM, MTTR in production, NPS, customer-reported bugs, canary and blue-green releases | No deployed service: the library is used from source and Bookshop runs locally. Revisit if Bookshop is deployed |
+| Data curation, drift and poisoning | No training or retrieval data; the seed is fixed. Redaction before data leaves is already a rule (EVT-03, D13) |
+| Coverage over 80% as a target | Mutation testing is the gate and says more; coverage stays reported |
+| Defect density per thousand lines, cyclomatic complexity as targets | Too noisy at this size. The linters' size rules and the core's line budget already bound complexity; the change failure rate measures defects |
+| An LLM judging the code or the answers | The reviewer is already a model; the change failure rate checks it. Evals score structured signals, as the design rules require |
+| Toxicity scores, runtime guardrail products | The provider's refusal ends a run as `Stopped(Refusal)`; Bookshop's risk is unapproved writes, which approval and audit answer (proposal 15) |
+| Jira, SonarQube, TestRail, LangSmith and similar tools | GitHub, CI and the app's own OpenTelemetry already hold the data. A tool is added when a metric needs it |
