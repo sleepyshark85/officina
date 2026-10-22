@@ -185,8 +185,10 @@ ARCHITECTURE.md first" requires. Slices that port an existing design don't need 
 ### 13. A quality scorecard per wave
 
 A script reads GitHub (PRs, verdicts, CI runs), the repository and the session transcripts, and writes the
-[scorecard](#scorecard) for a wave, as `scripts/agent-usage.py` writes [`agent-usage.md`](agent-usage.md). It needs
-proposal 4's cause labels for the must-fix split. The owner reads it at the end of each wave (proposal 11).
+[scorecard](#scorecard) for a wave, as `scripts/agent-usage.py` writes [`agent-usage.md`](agent-usage.md). The owner
+reads it at the end of each wave (proposal 11). Its sources and the conventions it needs are in
+[Collecting the data](#collecting-the-data). It can land in steps: the GitHub and git metrics first, as they need
+nothing new; then the cause labels, the CI artifacts, and the live-check workspace.
 
 ### 14. CodeQL for Ruby
 
@@ -258,13 +260,43 @@ Written per wave by proposal 13's script. Baselines are from this review where o
 | Suppressions added, each with an agreed reason | No unexplained rise | Not measured |
 | Mutation score of the full runs | At or above each implementation's floor | In each `decisions.md` |
 | Failed CI runs on `main` | None | Not measured |
-| Open CodeQL and vulnerability alerts | None | Not measured |
+| Open CodeQL and vulnerability alerts | None | 3 CodeQL (Go log injection, all in `spikes/go-claude-features`), 0 Dependabot, on 2026-10-22 |
 | Tokens per merged slice PR, by role | The lead's falling | Not split per PR |
 | Live API spend against cap | Never over | S10 overshot once ($0.58 against $0.40) |
 | Live smoke test | Passes, at about $0.40, with cache reads from the second call | On demand |
 
 A proposal that doesn't move its target is dropped, and one that cuts rounds while the change failure rate rises is
 reverted.
+
+### Collecting the data
+
+One script, `scripts/sdlc-metrics.py`, writes the scorecard for a wave into `docs/quality/<wave>.md`, regenerated
+rather than edited, like `agent-usage.md`. Its sources already exist or are a few lines away. It adds no new
+service. Each source is listed with the conventions it needs.
+
+**Waves.** Each wave is a GitHub milestone, and every PR in it is assigned to that milestone when it opens. The
+milestone gives the script its PRs, and its first and last merge give the date range for git and CI.
+
+| Data | Method | Convention or change it needs |
+|---|---|---|
+| Rounds, first-verdict approvals, lead time | `gh` GraphQL: the PR's verdict comments (the review gate's format), `createdAt`, `mergedAt` | None |
+| Must-fixes by cause | Parse each must-fix line of the verdicts for its label: `[tests]`, `[quality]`, `[bug]`, `[contract]`, `[ac]`, `[process]` | The reviewer brief asks for one label per must-fix (proposal 4). The script lists unlabelled lines instead of guessing |
+| Escaped defects, change failure rate | Fix PRs whose description says `Escaped from: #<n>`, counted against the wave of PR `<n>`. As a check, `git blame` of the lines the fix changed should land in `<n>` | The fixer and developer briefs: a fix to merged code names the PR that introduced the defect. The script flags `fix/` PRs without the line |
+| Failed CI runs on `main` | `gh run list --branch main`: conclusion `failure` (not `cancelled`) | None |
+| Open security alerts | `gh api` code-scanning and Dependabot alerts, open, by severity and path. The vulnerability scans already run on every push and weekly, so a new advisory turns CI red | Proposal 14 for Ruby. An alert in code that isn't shipped, like the spike's, is dismissed with a reason rather than left open |
+| Mutation scores | Each full mutation run writes a small JSON summary (implementation, package, score, survivors) as an artifact; the script reads the latest run's artifacts with `gh run download` | .NET uploads Stryker's reports already; Go's and Ruby's jobs write the summary from their tools' output |
+| Survivors in PR runs | The same summary on the diff-scoped run of each PR | As above |
+| Slow tests | Each test run writes per-test durations from its runner's own machine-readable output (`go test -json`, .NET's TRX logger, Minitest's `--verbose` lines, which print each test's time) as an artifact; the script lists tests over a second | A step per implementation's test job; no new dependency |
+| Suppressions | `git grep` at the wave's first and last merge for `rubocop:disable`, `mutant:disable`, `nolint`, `#pragma warning disable`, `Stryker disable`; the script reports the ones added and any without a reason after them | None |
+| AC and requirement changes | `git log` over `docs/plan/`, each implementation's `docs/plan.md`, REQUIREMENTS.md and ARCHITECTURE.md in the wave's range; a change to a slice's row after its branch's first commit counts as volatility | None |
+| Tokens per PR by role | `scripts/agent-usage.py`'s reading of the transcripts, joined to PRs by the agent's description | Each agent's description starts with its PR or slice, as `#123 review` or `R09B develop`. Output tokens are missing from the transcripts, so this counts input processed |
+| Live API spend | The Anthropic Admin API's cost report for a workspace used only by live checks and smoke tests | The owner creates that workspace, its API key and an admin key for the script, kept outside the repository. Agents' own reports stay as a cross-check |
+| Smoke test results | The smoke test ends by writing one JSON line: implementation, pass, cost, cache-read tokens from the second call. A scheduled CI job runs it weekly per implementation with the live-check workspace's key, and the script reads its artifacts | The owner agrees to the spend, about $0.40 per implementation per run |
+| Threat model and evals | Not collected: proposal 15's tests run with the others, and proposal 16's eval set reports its pass rate once it exists | — |
+
+What stays manual: dismissing an alert with its reason, judging a label the reviewer chose, and reading the scorecard
+at the end of the wave. An artifact dashboard over the generated pages can come later if the owner wants trends at a
+glance; the pages hold the data either way.
 
 ### Left out of the guide
 
