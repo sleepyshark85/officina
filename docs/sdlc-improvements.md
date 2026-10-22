@@ -6,8 +6,8 @@ or an implementation's `decisions.md` through its own PR, and is then struck fro
 
 ## Evidence
 
-Every must-fix in the "changes requested" verdicts of the 22 Ruby slice PRs (#83 to #124) and 8 Go slice PRs (#55 to
-#72), sorted by cause. The sorting is one agent's reading of the verdicts, so the split is approximate.
+Every must-fix in the "changes requested" verdicts of the 22 Ruby slice PRs (#83 to #124) and of 8 of the 13 Go
+slice PRs (#55 to #72), sorted by cause. The sorting is one agent's reading of the verdicts, so the split is approximate.
 
 | Cause | Ruby must-fixes | Share | Go must-fixes |
 |---|---|---|---|
@@ -19,19 +19,21 @@ Every must-fix in the "changes requested" verdicts of the 22 Ruby slice PRs (#83
 | Acceptance criterion missed or unclear | 4 | 3% | 2 |
 | **Total** | **118** | | **16** |
 
-- Ruby slices averaged about 2 "changes requested" rounds per PR, and none merged on its first verdict. Go slices averaged
-  1. Three things differ between them, so the gap is not one cause:
+- Ruby slices averaged about 2 "changes requested" rounds per PR, and none merged on its first verdict. The 13 Go
+  slices (#55 to #73) averaged about 0.6, and 6 were approved on their first verdict. Three things differ between
+  them, so the gap is not one cause:
   - Go was reviewed before the [quality bar](conventions.md#code-quality-bar) was set on 2026-10-10; some Ruby PRs
     straddled it.
   - Ruby brought new tools with their own learning curve (mutant, Steep).
   - Ruby split several slices into parts.
-- After the bar, test findings dominate. The Bookshop app (`ruby/apps/`) has no `mutant.yml`, unlike the three gems,
-  so the reviewer finds its surviving mutants by hand, a round after the developer could have.
+- After the bar, test findings dominate. The Bookshop app (`ruby/apps/`) and the test kit gem
+  (`officina-testing`) have no `mutant.yml`, unlike the other three gems, so the reviewer finds their surviving
+  mutants by hand, a round after the developer could have.
 - Of the 12 AC and contract findings, about 4 would clearly have been prevented by sharper ACs or contracts written
   before coding, and about 6 partly. All of them fall into the gaps in
   [the plan template](#8-plan-template-additions).
-- Rounds measure friction, not quality. Some bugs got past review and were fixed after merge, for example #88, #122
-  (a race in the stdio MCP client) and #144 (the audit of a cancelled approval). Escaped defects are not counted yet.
+- Rounds measure friction, not quality. Some bugs got past review and were fixed after merge, for example #88 (.NET
+  reported a reply before appending it) and #144 (the audit of a cancelled approval). Escaped defects are not counted yet.
 
 ### Where the cost goes
 
@@ -48,7 +50,7 @@ Cheapest and most effective first.
 
 | # | Proposal | Targets | Cost |
 |---|---|---|---|
-| 1 | Mutation config for the Ruby app | Tests (37%) | One small PR |
+| 1 | Mutation config for the Ruby app and test kit | Tests (37%) | One small PR |
 | 2 | Developer self-check before opening a PR | Quality, process, tests | Lines in the developer brief |
 | 3 | Recurring findings into linters and hooks | Quality (25%) | A cop or hook per finding |
 | 4 | A cause on every must-fix | Measuring | A line in the reviewer brief |
@@ -70,8 +72,9 @@ enough, and the rest wait for phase 2.
 
 ### 1. Mutation config for the Ruby app
 
-Give `ruby/apps/` a `mutant.yml` like the gems', so CI's diff-scoped mutation run covers it and the developer sees
-survivors before review.
+Give the Bookshop app (`ruby/apps/bookshop/`) and `officina-testing` a `mutant.yml` like the other gems', so CI's
+diff-scoped mutation run covers them and the developer sees survivors before review. The mutation step in
+`.github/workflows/ruby.yml` looks for `*/mutant.yml` one level below `ruby/`, so it changes to find the app's too.
 
 ### 2. Developer self-check before opening a PR
 
@@ -254,7 +257,7 @@ Written per wave by proposal 13's script. Baselines are from this review where o
 | Metric | Target | Baseline |
 |---|---|---|
 | Slice PRs merged on their first verdict | Rising | Ruby 0 of 22 |
-| "Changes requested" rounds per slice PR | 1 or less | Ruby about 2, Go about 1 |
+| "Changes requested" rounds per slice PR | 1 or less | Ruby about 2, Go about 0.6 |
 | Must-fixes by cause | Tests and quality shrinking | Ruby: tests 37%, quality 25% |
 | Change failure rate | Falling | Not measured |
 | Suppressions added, each with an agreed reason | No unexplained rise | Not measured |
@@ -283,7 +286,7 @@ milestone gives the script its PRs, and its first and last merge give the date r
 | Must-fixes by cause | Parse each must-fix line of the verdicts for its label: `[tests]`, `[quality]`, `[bug]`, `[contract]`, `[ac]`, `[process]` | The reviewer brief asks for one label per must-fix (proposal 4). The script lists unlabelled lines instead of guessing |
 | Escaped defects, change failure rate | Fix PRs whose description says `Escaped from: #<n>`, counted against the wave of PR `<n>`. As a check, `git blame` of the lines the fix changed should land in `<n>` | The fixer and developer briefs: a fix to merged code names the PR that introduced the defect. The script flags `fix/` PRs without the line |
 | Failed CI runs on `main` | `gh run list --branch main`: conclusion `failure` (not `cancelled`) | None |
-| Open security alerts | `gh api` code-scanning and Dependabot alerts, open, by severity and path. The vulnerability scans already run on every push and weekly, so a new advisory turns CI red | Proposal 14 for Ruby. An alert in code that isn't shipped, like the spike's, is dismissed with a reason rather than left open |
+| Open security alerts | `gh api` code-scanning and Dependabot alerts, open, by severity and path. The vulnerability scans run on every pull request and push; Go's and Ruby's also weekly, so a new advisory turns their CI red | Proposal 14 for Ruby; a weekly schedule for .NET's `ci.yml`. An alert in code that isn't shipped, like the spike's, is dismissed with a reason rather than left open |
 | Mutation scores | Each full mutation run writes a small JSON summary (implementation, package, score, survivors) as an artifact; the script reads the latest run's artifacts with `gh run download` | .NET uploads Stryker's reports already; Go's and Ruby's jobs write the summary from their tools' output |
 | Survivors in PR runs | The same summary on the diff-scoped run of each PR | As above |
 | Slow tests | Each test run writes per-test durations from its runner's own machine-readable output (`go test -json`, .NET's TRX logger, Minitest's `--verbose` lines, which print each test's time) as an artifact; the script lists tests over a second | A step per implementation's test job; no new dependency |
@@ -291,7 +294,7 @@ milestone gives the script its PRs, and its first and last merge give the date r
 | AC and requirement changes | `git log` over `docs/plan/`, each implementation's `docs/plan.md`, REQUIREMENTS.md and ARCHITECTURE.md in the wave's range; a change to a slice's row after its branch's first commit counts as volatility | None |
 | Tokens per PR by role | `scripts/agent-usage.py`'s reading of the transcripts, joined to PRs by the agent's description | Each agent's description starts with its PR or slice, as `#123 review` or `R09B develop`. Output tokens are missing from the transcripts, so this counts input processed |
 | Live API spend | The Anthropic Admin API's cost report for a workspace used only by live checks and smoke tests | The owner creates that workspace, its API key and an admin key for the script, kept outside the repository. Agents' own reports stay as a cross-check |
-| Smoke test results | The smoke test ends by writing one JSON line: implementation, pass, cost, cache-read tokens from the second call. A scheduled CI job runs it weekly per implementation with the live-check workspace's key, and the script reads its artifacts | The owner agrees to the spend, about $0.40 per implementation per run |
+| Smoke test results | The smoke test ends by writing one JSON line: implementation, pass, cost, cache-read tokens from the second call. A scheduled CI job runs it weekly per implementation with the live-check workspace's key, and the script reads its artifacts | The owner agrees to the spend, about $0.40 per implementation per run, and TEST-04 changes from on demand to weekly |
 | Threat model and evals | Not collected: proposal 15's tests run with the others, and proposal 16's eval set reports its pass rate once it exists | — |
 
 What stays manual: dismissing an alert with its reason, judging a label the reviewer chose, and reading the scorecard
@@ -307,5 +310,5 @@ glance; the pages hold the data either way.
 | Coverage over 80% as a target | Mutation testing is the gate and says more; coverage stays reported |
 | Defect density per thousand lines, cyclomatic complexity as targets | Too noisy at this size. The linters' size rules and the core's line budget already bound complexity; the change failure rate measures defects |
 | An LLM judging the code or the answers | The reviewer is already a model; the change failure rate checks it. Evals score structured signals, as the design rules require |
-| Toxicity scores, runtime guardrail products | The provider's refusal ends a run as `Stopped(Refusal)`; Bookshop's risk is unapproved writes, which approval and audit answer (proposal 15) |
+| Toxicity scores, runtime guardrail products | The provider's refusal ends a run as stopped, with refusal as its reason; Bookshop's risk is unapproved writes, which approval and audit answer (proposal 15) |
 | Jira, SonarQube, TestRail, LangSmith and similar tools | GitHub, CI and the app's own OpenTelemetry already hold the data. A tool is added when a metric needs it |
