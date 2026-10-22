@@ -19,7 +19,6 @@ SHARED = ("testdata/", "bookshop/", ".github/changes.py")
 
 
 def owners(path):
-    """The implementations a path belongs to; scripts/sdlc-metrics.py imports it to decide which PRs are whose."""
     if path.startswith(SHARED):
         return {"dotnet", *OWN}
     return {name for name, prefixes in OWN.items() if path.startswith(prefixes)} or {"dotnet"}
@@ -40,5 +39,4 @@ def main():
     print(f"{implementation}={'true' if changed else 'false'}")
 
 
-if __name__ == "__main__":
-    main()
+main()

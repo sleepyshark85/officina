@@ -1,8 +1,6 @@
 """Tests for sdlc-metrics.py: gh is replaced by a fake that answers as GitHub does, and git runs on a scratch repository
 built per test. Run: python3 -B -m unittest discover -s scripts/tests"""
-import contextlib
 import importlib.util
-import io
 import json
 import subprocess
 import tempfile
@@ -32,8 +30,8 @@ def request_changes(by="OWNER"):
 
 
 def pull_request_node(number, merge_commit, comments=(), created="2026-10-05T10:00:00Z",
-                      merged="2026-10-05T11:30:00Z"):
-    return {"number": number, "title": f"PR {number}", "url": f"https://github.com/owner/repo/pull/{number}",
+                      merged="2026-10-05T11:30:00Z", title=None):
+    return {"number": number, "title": title or f"PR {number}", "url": f"https://github.com/owner/repo/pull/{number}",
             "createdAt": created, "mergedAt": merged, "mergeCommit": {"oid": merge_commit},
             "comments": {"totalCount": len(comments), "nodes": list(comments)}}
 
@@ -151,21 +149,15 @@ class SdlcMetricsTest(unittest.TestCase):
         sdlc_metrics.main(["--since", str(SINCE), "--until", str(UNTIL)], repo=self.repo, directory=self.pages)
         return (self.pages / f"dotnet-{SINCE}-{UNTIL}.md").read_text(encoding="utf-8")
 
-    def test_changes_py_loads_without_running_its_main(self):
-        loader = importlib.util.spec_from_file_location("changes_import", ROOT / ".github" / "changes.py")
-        module = importlib.util.module_from_spec(loader)
-        output = io.StringIO()
-        with contextlib.redirect_stdout(output), mock.patch("sys.argv", ["changes.py", "dotnet"]):
-            loader.loader.exec_module(module)
-        self.assertEqual((output.getvalue(), module.owners("go/x.go")), ("", {"go"}))
-
-    def test_dotnet_pull_requests_are_those_whose_merge_changes_a_path_changes_py_gives_dotnet(self):
+    def test_dotnet_pull_requests_are_those_whose_merge_changes_a_path_under_dotnet(self):
         dotnet = self.merge({"dotnet/src/A.cs": "class A {}\n"})
         go = self.merge({"go/a.go": "package a\n"})
         shared = self.merge({"testdata/case.json": "{}\n"})
-        root = self.merge({"docs/notes.md": "Notes\n"})
-        self.merged(*(pull_request_node(number, sha) for number, sha in enumerate((dotnet, go, shared, root), 1)))
-        self.assertEqual([each.number for each in self.collect().pull_requests], [1, 3, 4])
+        root = self.merge({"docs/notes.md": "Notes\n", ".github/workflows/ci.yml": "on: push\n"})
+        both = self.merge({"ruby/a.rb": "a\n", "dotnet/B.cs": "class B {}\n"})
+        self.merged(*(pull_request_node(number, sha)
+                      for number, sha in enumerate((dotnet, go, shared, root, both), 1)))
+        self.assertEqual([each.number for each in self.collect().pull_requests], [1, 5])
 
     def test_a_file_moved_out_of_dotnet_still_changes_dotnet(self):
         self.commit({"dotnet/Moved.cs": "class Moved { int value; }\n"})
@@ -191,6 +183,11 @@ class SdlcMetricsTest(unittest.TestCase):
         pull_request = sdlc_metrics.pull_request(pull_request_node(1, "c" * 40, comments))
         self.assertEqual((pull_request.changes_requested, pull_request.merged_on_first_verdict), (2, False))
 
+    def test_a_pull_request_approved_then_sent_back_did_not_merge_on_its_first_verdict(self):
+        comments = [approve(), request_changes(), approve(), approve()]
+        pull_request = sdlc_metrics.pull_request(pull_request_node(1, "c" * 40, comments))
+        self.assertEqual((pull_request.changes_requested, pull_request.merged_on_first_verdict), (1, False))
+
     def test_an_approval_as_the_first_verdict_merges_on_it(self):
         pull_request = sdlc_metrics.pull_request(pull_request_node(1, "c" * 40, [approve()]))
         self.assertEqual((pull_request.changes_requested, pull_request.merged_on_first_verdict), (0, True))
@@ -206,6 +203,11 @@ class SdlcMetricsTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "#7 has more than 100 comments"):
             sdlc_metrics.pull_request(node)
 
+    def test_a_range_of_exactly_what_search_returns_is_read(self):
+        self.merged(pull_request_node(1, self.merge({"dotnet/A.cs": "a\n"})))
+        self.github.issue_count = 1000
+        self.assertEqual([each.number for each in self.collect().pull_requests], [1])
+
     def test_a_range_beyond_what_search_returns_is_refused_rather_than_cut(self):
         self.merged(pull_request_node(1, self.merge({"dotnet/A.cs": "a\n"})))
         self.github.issue_count = 1001
@@ -218,12 +220,13 @@ class SdlcMetricsTest(unittest.TestCase):
                     pull_request_node(3, self.merge({"dotnet/C.cs": "c\n"}), [approve()]))
         page = self.run_main()
         self.assertIn("| [#1](https://github.com/owner/repo/pull/1) | PR 1 | no verdict | - | - | 90 |", page)
-        self.assertIn("- **Merged:** 3, of which 2 with a verdict; the others count in neither total below.", page)
+        self.assertIn("- **Merged:** 3, of which 2 with a verdict; only those count in the next two totals.", page)
         self.assertIn("- **Merged on their first verdict:** 1 of 2.", page)
         self.assertIn("- **\"Changes requested\" rounds:** 1, 0.5 per PR with a verdict.", page)
         self.assertIn("| [#2](https://github.com/owner/repo/pull/2) | PR 2 | 2 | 1 | no | 90 |", page)
         self.assertIn("| [#3](https://github.com/owner/repo/pull/3) | PR 3 | 1 | 0 | yes | 90 |", page)
         self.assertIn("Runs of CI, Mutation, CodeQL that failed (cancelled ones are left out).\n\nNone.\n", page)
+        self.assertIn("UTC, when this page was generated.\n\nNone.\n", page)
 
     def test_failed_runs_are_read_per_check_workflow_on_main_in_the_range(self):
         self.merged(pull_request_node(1, self.merge({"dotnet/A.cs": "a\n"})))
@@ -249,6 +252,7 @@ class SdlcMetricsTest(unittest.TestCase):
 
     def test_code_scanning_alerts_count_on_the_implementations_paths_and_dependabot_reads_its_ecosystem(self):
         self.github.code_scanning = [code_scanning_alert("spikes/go-claude-features/main.go"),
+                                     code_scanning_alert(".github/workflows/ci.yml", "actions/untrusted-checkout"),
                                      code_scanning_alert("dotnet/src/A.cs", "cs/sql-injection", "high")]
         self.github.dependabot = [{"security_advisory": {"ghsa_id": "GHSA-1", "severity": "low"},
                                    "dependency": {"package": {"name": "Npgsql"}}, "html_url": "https://x/1"}]
@@ -276,6 +280,17 @@ class SdlcMetricsTest(unittest.TestCase):
         self.assertEqual(found.without_reason, [("dotnet/A.cs", "#pragma warning disable CA2000 //"),
                                                 ("dotnet/B.cs", "// Stryker disable all"),
                                                 ("dotnet/B.cs", '[SuppressMessage("x", "CA2", Justification = "")]')])
+
+    def test_a_reason_counts_only_after_the_marker(self):
+        last = self.merge({"dotnet/A.cs": "var a = b ? c : d; // Stryker disable once all\n"})
+        self.merged(pull_request_node(1, last))
+        found = self.collect().suppressions
+        self.assertEqual(found.without_reason, [("dotnet/A.cs", "var a = b ? c : d; // Stryker disable once all")])
+
+    def test_a_git_grep_that_fails_is_an_error_not_an_empty_count(self):
+        with self.assertRaises(subprocess.CalledProcessError) as raised:
+            sdlc_metrics.suppressions_at(self.repo, "no-such-commit", sdlc_metrics.DOTNET)
+        self.assertEqual((raised.exception.cmd[:2], raised.exception.returncode), (["git", "grep"], 128))
 
     def test_plan_changes_are_the_ranges_commits_to_each_plan_and_requirement_doc(self):
         self.commit({"REQUIREMENTS.md": "Before the range\n\n\n\nEnd\n"}, "Requirements before")
@@ -325,6 +340,43 @@ class SdlcMetricsTest(unittest.TestCase):
         self.assertIn("| `Pkg` | 75.00% | 1 | 0 |", page)
         self.assertIn("| **Total** | **90.0%** | **75.0%** |", page)
         self.assertIn("From the run [6](https://github.com/owner/repo/actions/runs/6) of 2026-10-06.", page)
+
+    def test_the_page_renders_each_section_in_merge_and_creation_order(self):
+        self.commit({"dotnet/Old.cs": "    #pragma warning disable CA1031 // Old reason.\n"})
+        first = self.merge({"dotnet/Old.cs": None, "REQUIREMENTS.md": "Changed\n"}, "Requirements changed")
+        last = self.merge({"dotnet/B.cs": "#pragma warning disable CA1 // Why.\n#pragma warning disable CA2\n"})
+        # Search returns the later merge first; the range still starts before the earlier one.
+        self.merged(pull_request_node(2, last, [approve()], created="2026-10-06T08:00:00Z",
+                                      merged="2026-10-06T08:20:00Z", title="Fix a | b"),
+                    pull_request_node(1, first, [approve()]))
+        self.github.runs[("ci.yml", "failure")] = [run(8, created="2026-10-07T09:00:00Z"),
+                                                   run(7, created="2026-10-06T09:00:00Z")]
+        self.github.code_scanning = [code_scanning_alert("dotnet/src/A.cs", "cs/sql-injection", "high")]
+        page = self.run_main()
+        self.assertIn("| [#1](https://github.com/owner/repo/pull/1) | PR 1 | 1 | 0 | yes | 90 |\n"
+                      "| [#2](https://github.com/owner/repo/pull/2) | Fix a / b | 1 | 0 | yes | 20 |\n", page)
+        self.assertIn("- **Lead time from open to merge, over all 2:** median 55 min, longest 90 min.", page)
+        self.assertIn("| CI | [7](https://github.com/owner/repo/actions/runs/7) | 2026-10-06 09:00 | Run 7 |\n"
+                      "| CI | [8](https://github.com/owner/repo/actions/runs/8) | 2026-10-07 09:00 | Run 8 |\n", page)
+        self.assertIn("| [cs/sql-injection](https://github.com/owner/repo/security/code-scanning/cs/sql-injection) "
+                      "| high | `dotnet/src/A.cs` |", page)
+        self.assertIn("| Added in | Line | Reason given |\n|---|---|---|\n"
+                      "| `dotnet/B.cs` | `#pragma warning disable CA1 // Why.` | yes |\n"
+                      "| `dotnet/B.cs` | `#pragma warning disable CA2` | no |\n", page)
+        self.assertIn("| Removed from | Line |\n|---|---|\n"
+                      "| `dotnet/Old.cs` | `#pragma warning disable CA1031 // Old reason.` |", page)
+        self.assertIn("- **`REQUIREMENTS.md`:** 1\n  - ", page)
+        self.assertIn("## Mutation score\n\nNo successful full run on main up to the end of the range.\n", page)
+        self.assertIn("## Coverage\n\nNo successful run on main up to the end of the range.\n", page)
+
+    def test_a_range_with_merges_but_none_changing_dotnet_shows_none_merged(self):
+        self.merged(pull_request_node(1, self.merge({"go/a.go": "package a\n"}), [approve()]))
+        self.assertIn("## Pull requests\n\nNone merged.\n", self.run_main())
+
+    def test_a_range_that_ends_before_it_starts_is_refused(self):
+        with self.assertRaises(SystemExit), mock.patch("sys.stderr"):
+            sdlc_metrics.main(["--since", str(UNTIL), "--until", str(SINCE)], repo=self.repo, directory=self.pages)
+        self.assertEqual(self.github.calls, [])
 
     def test_without_a_merged_pull_request_nothing_is_written(self):
         with self.assertRaises(SystemExit):

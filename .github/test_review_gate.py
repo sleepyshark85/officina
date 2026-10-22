@@ -1,11 +1,15 @@
 """Tests for review_gate.py: each builds a pull request in a scratch repository and runs the gate on it as the review
 workflow does. Run with `python3 -m unittest discover -s .github`."""
+import contextlib
+import importlib.util
+import io
 import json
 import os
 import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 GATE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "review_gate.py")
 BLOCK = "a\nb\nc\nd\ne\nf\n"
@@ -297,6 +301,17 @@ class ReviewGateTest(unittest.TestCase):
         verdict["body"] += f"\n\nReviewed {reviewed}."
 
         self.assertEqual(waiting(head, "the newest verdict approves none of its commits"), self.gate(verdict))
+
+
+class ReviewGateImportTest(unittest.TestCase):
+    def test_importing_the_gate_decides_nothing(self):
+        spec = importlib.util.spec_from_file_location("review_gate", GATE)
+        module = importlib.util.module_from_spec(spec)
+        output = io.StringIO()
+        # Run as a script with these arguments, the gate would fail on their count.
+        with contextlib.redirect_stdout(output), mock.patch("sys.argv", ["review_gate.py"]):
+            spec.loader.exec_module(module)
+        self.assertEqual((output.getvalue(), module.VERDICT_PREFIX), ("", "**Verdict:"))
 
 
 if __name__ == "__main__":

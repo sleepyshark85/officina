@@ -7,8 +7,9 @@ Usage: python3 -B scripts/sdlc-metrics.py --since YYYY-MM-DD --until YYYY-MM-DD
 Both dates are UTC and included. Run it from a checkout whose git has every merge of the range (fetch first). The page
 is written only once it is complete, so a run that fails leaves it as it was.
 
-Which pull requests belong to an implementation is what .github/changes.py decides for their merge commit's change.
-The open alerts are read when the script runs, not as they were at the end of the range."""
+A pull request belongs to an implementation when its merge commit changes a path under the implementation's folder; one
+that changes only shared paths (docs, .github, scripts) belongs to none. The open alerts are read when the script runs,
+not as they were at the end of the range."""
 import argparse
 import importlib.util
 import json
@@ -20,19 +21,18 @@ import tempfile
 from collections import Counter
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
-from typing import Callable, NamedTuple
+from typing import NamedTuple
 
 ROOT = Path(__file__).resolve().parent.parent
 QUALITY_DIR = ROOT / "docs" / "quality"
 
-_spec = importlib.util.spec_from_file_location("changes", ROOT / ".github" / "changes.py")
-changes = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(changes)
+# A verdict is what the review gate counts as one.
+_spec = importlib.util.spec_from_file_location("review_gate", ROOT / ".github" / "review_gate.py")
+review_gate = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(review_gate)
 
-# What .github/review_gate.py counts as a verdict. A verdict that is not an approval asks for changes, as it fails the
-# gate.
-VERDICT_AUTHORS = {"OWNER", "MEMBER", "COLLABORATOR"}
-VERDICT_PREFIX = "**Verdict:"
+# A verdict that is not an approval asks for changes, as it fails the gate. The gate's own approval also needs " at
+# <sha>", which the earliest approvals lack; they approved all the same, so an approval here is the prefix alone.
 APPROVAL_PREFIX = "**Verdict: APPROVE**"
 
 # GitHub's search returns at most 1000 results; a range with more is refused rather than cut short.
@@ -86,17 +86,14 @@ class Implementation(NamedTuple):
     """Where one implementation's scorecard reads its data."""
     name: str
     title: str
+    paths: tuple[str, ...]
     checks: tuple[Workflow, ...]
+    mutation: Workflow
+    coverage: Workflow
     dependabot_ecosystem: str
     suppressions: tuple[Suppression, ...]
     suppression_paths: tuple[str, ...]
     plan_docs: tuple[str, ...]
-    mutation: Workflow
-    mutation_artifact: str
-    mutation_scores: Callable[[Path], list]
-    coverage: Workflow
-    coverage_artifact: str
-    coverage_table: Callable[[Path], str]
 
 
 class PullRequest(NamedTuple):
@@ -115,7 +112,9 @@ class PullRequest(NamedTuple):
 
     @property
     def merged_on_first_verdict(self):
-        return self.verdicts[0].startswith(APPROVAL_PREFIX)
+        """For a pull request with a verdict: none asked for changes. An approval after the first one approves a
+        newer head, such as a merge of main, not a fix."""
+        return self.changes_requested == 0
 
     @property
     def lead_time(self):
@@ -180,15 +179,16 @@ def pull_request(node):
     if comments["totalCount"] > len(comments["nodes"]):
         raise ValueError(f"#{node['number']} has more than {COMMENTS_PER_PR} comments; its verdicts would be cut.")
     verdicts = [comment["body"] for comment in comments["nodes"]
-                if comment["authorAssociation"] in VERDICT_AUTHORS and comment["body"].startswith(VERDICT_PREFIX)]
+                if comment["authorAssociation"] in review_gate.ALLOWED_AUTHORS
+                and comment["body"].startswith(review_gate.VERDICT_PREFIX)]
     return PullRequest(node["number"], node["title"], node["url"], datetime.fromisoformat(node["createdAt"]),
                        datetime.fromisoformat(node["mergedAt"]), node["mergeCommit"]["oid"], verdicts)
 
 
 def changes_implementation(repo, merge_commit, implementation):
-    # Without --no-renames a file moved between implementations lists only its new path, as in changes.py.
+    # Without --no-renames a file moved out of the implementation lists only its new path.
     paths = git(repo, "diff", "--no-renames", "--name-only", f"{merge_commit}^1", merge_commit).splitlines()
-    return any(implementation.name in changes.owners(path) for path in paths)
+    return any(path.startswith(implementation.paths) for path in paths)
 
 
 def read_failed_runs(implementation, since, until):
@@ -230,7 +230,7 @@ def read_alerts(implementation):
     alerts = [Alert(alert["rule"]["id"], alert["rule"]["security_severity_level"] or alert["rule"]["severity"],
                     alert["most_recent_instance"]["location"]["path"], alert["html_url"])
               for page in scanning for alert in page
-              if implementation.name in changes.owners(alert["most_recent_instance"]["location"]["path"])]
+              if alert["most_recent_instance"]["location"]["path"].startswith(implementation.paths)]
     alerts += [Alert(alert["security_advisory"]["ghsa_id"], alert["security_advisory"]["severity"],
                      alert["dependency"]["package"]["name"], alert["html_url"])
                for page in dependabot for alert in page]
@@ -272,6 +272,10 @@ def plan_changes(repo, before, after, implementation):
             for doc in implementation.plan_docs]
 
 
+STRYKER_ARTIFACT = "mutation-reports"
+COBERTURA_ARTIFACT = "coverage-report"
+
+
 def stryker_scores(directory):
     """Each package's mutation score from the Stryker JSON reports in an artifact, laid out as
     <package>/StrykerOutput/<time>/reports/mutation-report.json."""
@@ -296,7 +300,10 @@ DOTNET_MUTATION = Workflow("Mutation", "mutation.yml")
 DOTNET = Implementation(
     name="dotnet",
     title=".NET",
+    paths=("dotnet/",),
     checks=(DOTNET_CI, DOTNET_MUTATION, Workflow("CodeQL", "codeql.yml")),
+    mutation=DOTNET_MUTATION,
+    coverage=DOTNET_CI,
     dependabot_ecosystem="nuget",
     suppressions=(
         # A reason is a comment after the codes, a non-empty Justification, or the text after Stryker's colon.
@@ -306,14 +313,7 @@ DOTNET = Implementation(
     ),
     suppression_paths=("dotnet/*.cs",),
     plan_docs=("docs/plan/phase-1.md", "dotnet/docs/plan.md", "REQUIREMENTS.md", "ARCHITECTURE.md"),
-    mutation=DOTNET_MUTATION,
-    mutation_artifact="mutation-reports",
-    mutation_scores=stryker_scores,
-    coverage=DOTNET_CI,
-    coverage_artifact="coverage-report",
-    coverage_table=cobertura_table,
 )
-IMPLEMENTATIONS = (DOTNET,)
 
 
 class Scorecard(NamedTuple):
@@ -359,9 +359,9 @@ def collect(repo, implementation, since, until):
         compare_suppressions(repo, before, after, implementation),
         plan_changes(repo, before, after, implementation),
         mutation_run,
-        from_artifact(mutation_run, implementation.mutation_artifact, implementation.mutation_scores),
+        from_artifact(mutation_run, STRYKER_ARTIFACT, stryker_scores),
         coverage_run,
-        from_artifact(coverage_run, implementation.coverage_artifact, implementation.coverage_table),
+        from_artifact(coverage_run, COBERTURA_ARTIFACT, cobertura_table),
     )
 
 
@@ -385,12 +385,12 @@ def render_pull_requests(pull_requests):
     if not pull_requests:
         return lines + ["None merged.", ""]
     lead_times = [each.lead_time for each in pull_requests]
-    lines += [f"- **Merged:** {len(pull_requests)}, of which {len(reviewed)} with a verdict; the others count in "
-              "neither total below.",
+    lines += [f"- **Merged:** {len(pull_requests)}, of which {len(reviewed)} with a verdict; only those count in the "
+              "next two totals.",
               f"- **Merged on their first verdict:** {first} of {len(reviewed)}.",
               f"- **\"Changes requested\" rounds:** {rounds}"
               + (f", {rounds / len(reviewed):.1f} per PR with a verdict." if reviewed else "."),
-              f"- **Lead time from open to merge:** median {minutes(statistics.median(lead_times))} min, longest "
+              f"- **Lead time from open to merge, over all {len(pull_requests)}:** median {minutes(statistics.median(lead_times))} min, longest "
               f"{minutes(max(lead_times))} min.",
               "", "| PR | Title | Verdicts | Changes requested | Merged on first verdict | Lead time (min) |",
               "|---|---|---|---|---|---|"]
@@ -474,8 +474,8 @@ def render(card):
     implementation = card.implementation
     intro = f"""# {implementation.title} quality scorecard, {card.since} to {card.until}
 
-The pull requests merged in this range that change {implementation.title}, as `.github/changes.py` decides, and
-the state of its code over the range. Generated by [`scripts/sdlc-metrics.py`](../../scripts/sdlc-metrics.py);
+The pull requests merged in this range that change a path under `{'`, `'.join(implementation.paths)}`, and the state
+of {implementation.title}'s code over the range. Generated by [`scripts/sdlc-metrics.py`](../../scripts/sdlc-metrics.py);
 regenerate it rather than editing it:
 
 ```sh
@@ -494,20 +494,19 @@ changes. Dates are UTC.
 
 
 def main(argv, repo=ROOT, directory=QUALITY_DIR):
-    """Writes each implementation's page for the range, or exits with a message when no pull request merged in it."""
+    """Writes .NET's page for the range, or exits with a message when no pull request merged in it."""
     parser = argparse.ArgumentParser(description="Writes the quality scorecard of a date range.")
     parser.add_argument("--since", type=date.fromisoformat, required=True, help="first day, YYYY-MM-DD (UTC)")
     parser.add_argument("--until", type=date.fromisoformat, required=True, help="last day, YYYY-MM-DD (UTC)")
     args = parser.parse_args(argv)
     if args.since > args.until:
         parser.error("--since is after --until")
-    for implementation in IMPLEMENTATIONS:
-        card = collect(repo, implementation, args.since, args.until)
-        if card is None:
-            sys.exit(f"No pull request merged from {args.since} to {args.until}; nothing is written.")
-        directory.mkdir(parents=True, exist_ok=True)
-        page = directory / f"{implementation.name}-{args.since}-{args.until}.md"
-        page.write_text(render(card), encoding="utf-8")
+    card = collect(repo, DOTNET, args.since, args.until)
+    if card is None:
+        sys.exit(f"No pull request merged from {args.since} to {args.until}; nothing is written.")
+    directory.mkdir(parents=True, exist_ok=True)
+    page = directory / f"{DOTNET.name}-{args.since}-{args.until}.md"
+    page.write_text(render(card), encoding="utf-8")
 
 
 if __name__ == "__main__":

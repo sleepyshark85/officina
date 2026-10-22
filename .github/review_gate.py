@@ -19,6 +19,7 @@ import subprocess
 import sys
 
 ALLOWED_AUTHORS = {"OWNER", "MEMBER", "COLLABORATOR"}
+VERDICT_PREFIX = "**Verdict:"
 APPROVAL = re.compile(r"\*\*Verdict: APPROVE\*\* at ([0-9a-f]{40})")
 
 
@@ -29,7 +30,7 @@ def git(*args):
 def decide(comments, head, base, default_branch):
     """The status for the head: a (state, description) pair."""
     verdicts = [comment["body"] for comment in comments
-                if comment["author_association"] in ALLOWED_AUTHORS and comment["body"].startswith("**Verdict:")]
+                if comment["author_association"] in ALLOWED_AUTHORS and comment["body"].startswith(VERDICT_PREFIX)]
     at_head = [verdict for verdict in verdicts if head in verdict]
     if at_head:
         if approved_commit(at_head[-1]) == head:
@@ -107,4 +108,5 @@ def main():
     print(f"{state}\t{description}")
 
 
-main()
+if __name__ == "__main__":
+    main()
