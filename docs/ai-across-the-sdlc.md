@@ -8,7 +8,7 @@ rule; a point that becomes one goes through [`sdlc-improvements.md`](sdlc-improv
 conventions.
 
 Industry practice moves fast and its sources vary in quality: published frameworks (DORA, NIST, OWASP, OpenSSF,
-OpenTelemetry) are cited by name; vendor practice is described without endorsing a product. The repository facts are
+OpenTelemetry) are cited by name and listed with a link in [Sources](#sources); vendor practice is described without endorsing a product. The repository facts are
 from 2026-10-22 and 2026-10-23.
 
 ## The thesis
@@ -16,10 +16,10 @@ from 2026-10-22 and 2026-10-23.
 The owner's view: AI speeds the whole SDLC up a lot, but doesn't change the fundamentals of how an SDLC should work in
 the CI/CD era.
 
-The industry's evidence agrees on both halves. DORA's 2025 report on AI-assisted development describes AI as an
+The industry's evidence agrees on both halves. DORA's 2025 report on AI-assisted development [S2] describes AI as an
 **amplifier**: it makes teams with strong practices (small batches, version control, a good internal platform, clear
-policy on AI use) faster, and teams without them faster at producing instability. DORA's 2024 report had found more AI
-adoption going with lower delivery stability, and METR's 2025 trial found experienced developers slower with AI while
+policy on AI use) faster, and teams without them faster at producing instability. DORA's 2024 report [S1] had found more AI
+adoption going with lower delivery stability, and METR's 2025 trial [S3] found experienced developers slower with AI while
 believing they were faster. Speed without the fundamentals isn't a gain.
 
 Officina is a case of the amplifier working: from the first commit (2026-10-05) to 142 merged PRs, two finished
@@ -30,7 +30,7 @@ What AI does change is the **cost ratios between activities**, and practice is b
 | Activity | Before | With agents | Consequence |
 |---|---|---|---|
 | Writing code | Expensive, the bottleneck | Nearly free | The bottleneck moves to specifying and verifying |
-| Verifying code (review, tests) | A share of the writing cost | The largest cost (here: up to 3 Opus rounds per PR) | Verification capacity sets throughput; spend it on judgement, not on what a tool can check |
+| Verifying code (review, tests) | A share of the writing cost | A large cost (here: up to 3 Opus rounds per PR), though by tokens building still costs more than reviewing (phase 7) | Verification capacity sets throughput; spend it on judgement, not on what a tool can check |
 | Tests, mutation runs, property tests | Often skipped as too costly | Cheap to write and run | A higher bar is affordable: the owner raised it on 2026-10-10 |
 | Knowledge transfer | Tacit, in people's heads | Every agent starts cold | What isn't written down (conventions, contracts, briefs) doesn't exist |
 | A second implementation | Rarely worth it | Affordable | N-version builds find spec ambiguity (the parity findings, proposal 7) |
@@ -38,7 +38,7 @@ What AI does change is the **cost ratios between activities**, and practice is b
 So the fundamentals hold, and three of them become load-bearing:
 
 1. **Verification is the product of the process.** An agent optimizes against whatever check it can see. A check it
-   can pass without the behaviour being right (a test that passes for the wrong reason: 37% of Ruby's must-fixes) is
+   can pass without the behaviour being right (a weak test, surviving mutants included: 37% of Ruby's must-fixes) is
    worse than no check.
 2. **Independent review.** A model reviewing a model's code shares its blind spots. Independence has to be built in:
    fresh reviewers, different context, another model family, a human sample.
@@ -60,9 +60,9 @@ Each phase has the same four parts:
 
 **Industry practice.**
 
-- **Spec-driven development.** Agentic tools have converged on a written spec before code: requirements, then a
-  design, then a task list, each reviewed by a person before the agent builds (GitHub's Spec Kit, Amazon's Kiro).
-  Requirements are written in a structured form such as EARS ("When X, the system shall Y") or Given/When/Then so
+- **Spec-driven development.** The agentic tools we looked at (GitHub's Spec Kit [S18], Amazon's Kiro [S19]) put a
+  written spec before code: requirements, then a design, then a task list, each reviewed by a person before the
+  agent builds. Requirements are written in a structured form such as EARS [S20] ("When X, the system shall Y") or Given/When/Then so
   they map one to one onto tests.
 - **Traceability.** Every requirement has an ID; every test names the ID it checks.
 - **The spec is versioned with the code** and changed through the same review, because it is now the input the agents
@@ -98,8 +98,8 @@ number of clarifying questions and recorded assumptions per task; the share of A
 - **Fitness functions.** Architecture rules checked by tests in CI (allowed dependencies, layering), so a design rule
   can't erode silently.
 - **Threat modelling as part of design**, updated per feature: STRIDE for the classic threats, and for agentic systems
-  the OWASP Top 10 for LLM Applications (2025: prompt injection, excessive agency, improper output handling…), OWASP's
-  agentic AI threat guidance and the Cloud Security Alliance's MAESTRO framework.
+  the OWASP Top 10 for LLM Applications [S8] (2025: prompt injection, excessive agency, improper output handling…),
+  OWASP's agentic AI threat guidance [S9] and the Cloud Security Alliance's MAESTRO framework [S10].
 
 **AI helps:** exploring alternatives, drafting ADRs and contracts and their tests, drafting a threat model and keeping
 it current, checking a change against stated rules. **AI hurts:** agents don't push back on a design and build
@@ -117,7 +117,7 @@ record; threat model coverage (each untrusted input listed, each with a mitigati
 | Architecture views | ARCHITECTURE.md (language-neutral); .NET diagrams drawn from code | None |
 | Contract first | Contracts in ARCHITECTURE §4; not at slice seams | Seam findings (#100, #114, #117): P9 |
 | Fitness functions | The dependency check test (TEST-05), prefix stability (TEST-02), hooks for file layout | Fine for now |
-| Threat model, LLM threats | Structural defences (approval, audit before write, no SQL tools, redaction), unstated | P15, mapped to the OWASP LLM Top 10's categories |
+| Threat model, LLM threats | Structural defences (approval, audit before write, no SQL tools, redaction), unstated | P15; N10 maps it to the OWASP LLM Top 10's categories |
 
 ## 3. Coding
 
@@ -136,13 +136,13 @@ record; threat model coverage (each untrusted input listed, each with a mitigati
 **AI helps:** speed; consistent application of written conventions; idiomatic code in a language the owner doesn't
 write daily; refactors a person would postpone. **AI hurts:** volume beyond what anyone reads; plausible, subtly wrong
 code (#88); code that meets a rule's letter; more duplication and churn (GitClear's analyses of 2024 and 2025 code
-found both rising with AI assistance); **comprehension debt**, code that no person has understood end to end.
+found both rising with AI assistance [S4]); **comprehension debt**, code that no person has understood end to end.
 
-**Measuring AI use.** The common frameworks (DX's AI measurement framework, the SPACE dimensions, vendors' usage
+**Measuring AI use.** The common frameworks (DX's AI measurement framework [S16], the SPACE dimensions [S17], vendors' usage
 APIs) measure three things together: **utilization** (share of PRs or lines AI-authored), **impact** (PR throughput,
 lead time, review rounds, change failure rate, developer experience) and **cost** (spend per developer or per PR).
 Code-level signals: PR size, churn (lines rewritten within weeks), duplication, suppressions added. Acceptance rate
-of suggestions, once the headline metric, is falling out of use for agentic work, as it says nothing about quality.
+of suggestions, once the headline metric, is left out here: for agentic work it says nothing about quality.
 
 **Officina compared.**
 
@@ -160,12 +160,12 @@ of suggestions, once the headline metric, is falling out of use for agentic work
 
 **Industry practice.**
 
-- **A secure development framework**: NIST's SSDF (SP 800-218) and its profile for generative AI (SP 800-218A), which
+- **A secure development framework**: NIST's SSDF (SP 800-218 [S11]) and its profile for generative AI (SP 800-218A [S12]), which
   adds the model and its data to the supply chain.
 - **Scanning on every change and on a schedule**: SAST, dependency vulnerabilities, secrets with push protection.
-- **Supply chain hygiene** (OpenSSF and SLSA): actions and dependencies pinned by hash, workflows with least-privilege
+- **Supply chain hygiene** (OpenSSF Scorecard [S13] and SLSA [S14]): actions and dependencies pinned by hash, workflows with least-privilege
   tokens, an OpenSSF Scorecard run, and for released artifacts an SBOM and build provenance.
-- **AI-specific risks**: package hallucination ("slopsquatting", agents suggesting packages that don't exist and that
+- **AI-specific risks**: package hallucination ("slopsquatting" [S15], agents suggesting packages that don't exist and that
   attackers then register), insecure patterns reproduced from training data, and the coding agent itself as an attack
   surface (prompt injection through a file, issue or web page it reads, acting with the developer's credentials).
 
@@ -185,7 +185,7 @@ period and whether each was justified; OpenSSF Scorecard score over time.
 | Secrets | Secret scanning and push protection on | Non-provider patterns off: N4 |
 | New dependencies justified | The bar's *Dependencies* row: a decisions line, licence, maintenance | None; it also answers slopsquatting |
 | Least-privilege workflows | Each workflow declares `permissions` | None |
-| Actions pinned by hash | Most actions pinned by tag (`@v4`, `@v7`); golangci-lint by hash | N4 |
+| Actions pinned by hash | Most actions pinned by tag (`@v4`, `@v7`); golangci-lint and setup-ruby by hash | N4 |
 | OpenSSF Scorecard | Not run | N4 |
 | SBOM and provenance | No releases yet: the library is used from source | At the first release: N9 |
 | Agent as attack surface | Hooks protect `main`; the review gate counts only trusted authors' verdicts | No sandbox or allowlist: N3 |
@@ -197,10 +197,10 @@ period and whether each was justified; OpenSSF Scorecard score over time.
 
 - **Fast, deterministic tests** with only the boundaries faked; flaky tests quarantined and fixed, tracked as a rate.
 - **Mutation testing in code review.** Google reports running mutation on the changed lines of each code review
-  rather than on whole codebases; that is now the established way to make it affordable.
+  rather than on whole codebases [S5], which keeps it affordable.
 - **Property-based and fuzz testing** for parsers, validators and state machines.
-- **AI-generated tests checked by an oracle.** Meta's published work (TestGen-LLM in 2024, and mutation-guided test
-  generation in 2025) keeps a generated test only if it builds, passes reliably and kills a mutant or adds coverage.
+- **AI-generated tests checked by an oracle.** Meta's published work (TestGen-LLM in 2024 [S6], and mutation-guided test
+  generation in 2025 [S7]) keeps a generated test only if it builds, passes reliably and kills a mutant or adds coverage.
   A generated test that can't fail is discarded.
 - **Contract tests** between components built separately.
 
@@ -218,8 +218,8 @@ rate; suite duration; test-related review findings.
 |---|---|---|
 | Boundaries only, deterministic | A convention; real PostgreSQL in Docker; scripted model, approver and MCP server | None |
 | Diff-scoped mutation in review | Per PR for all three implementations; full runs weekly | Not on the Ruby app or test kit: P1. Agents see survivors only in review: P2 |
-| Property and fuzz tests | Required for every parser and validator (TEST-07, TEST-08) | None |
-| Generated tests checked by an oracle | Mutation catches weak tests, but in CI, after the PR opens | P2: the developer runs mutation and keeps only tests that kill something |
+| Property and fuzz tests | Required for every parser and validator (the conventions' *Tests* rule) | None |
+| Generated tests checked by an oracle | Mutation catches weak tests, but in CI, after the PR opens | P2 (the developer's self-check); N11: it keeps only tests that kill something |
 | Contract tests across implementations | Shared `testdata/` fixtures for some points | Parity points without a fixture: P7 |
 | Flaky and slow tests tracked | "A flaky test is a bug" rule; no measurement | Slow tests in P13; flaky reruns not counted: N2 |
 
@@ -228,18 +228,18 @@ rate; suite duration; test-related review findings.
 **Industry practice.**
 
 - **Trunk-based development** with required checks, an up-to-date branch or a **merge queue**, and code owners.
-- **AI review as a first pass, a person approves.** Most organizations using AI review tools keep a human approval as
-  the merge condition, at least for risky paths. Review by a second model family is used where errors must be caught
+- **AI review as a first pass, a person approves.** In the vendor guidance we read, a person's approval stays the
+  merge condition, at least for risky paths. Review by a second model family is a way to catch errors
   independently.
-- **DORA's metrics**, which since 2024 are five: deployment frequency, lead time, failed deployment recovery time,
+- **DORA's metrics** [S1], which since 2024 are five: deployment frequency, lead time, failed deployment recovery time,
   change failure rate and **rework rate** (unplanned changes to fix what shipped). Throughput and stability are read
   together.
 - **For libraries**: semantic versioning, an API compatibility check in CI, release notes, and provenance on releases.
 - **Progressive delivery** (feature flags, canaries) where there is a service.
 
 **AI helps:** agents rebase, retarget and fix CI without friction; review is immediate. **AI hurts:** throughput
-numbers inflate and stop meaning what they used to (a 23-minute median lead time says the agents are fast, not that
-the change is good); model review is fast and can be wrong in ways a second model of the same family repeats.
+numbers inflate and stop meaning what they used to (the .NET scorecard's median lead time of 23 minutes over its 5 PRs says the
+agents are fast, not that the change is good); model review is fast and can be wrong in ways a second model of the same family repeats.
 
 **Measuring AI use.** DORA's five metrics split by AI-authored versus not; review rounds; escaped defects by cause; the
 share of PRs a person read.
@@ -252,7 +252,7 @@ share of PRs a person read.
 | Approval as the merge condition | The review gate: a verdict naming the commit, from a trusted author | — |
 | A person approves | The owner delegated approval to a fresh Opus reviewer | The main departure from industry practice. N5: the owner reads a random sample per wave |
 | Independent review | A fresh reviewer per PR; strict re-review | Same model family throughout: "review by another model family" (considered for later) on risky PRs |
-| Change failure and rework rate | Escaped defects known by example (#88, #144); not counted | P13's `Escaped from:` line; N6 adds rework rate |
+| Change failure and rework rate | Escaped defects known by example (#88, #144); not counted | P13's `Escaped from:` line; N6 adds rework rate, which also counts unplanned follow-ups that fix no escaped defect |
 | Library releases | Used from source, no versions | N9 at the first release |
 
 ## 7. The AI process itself
@@ -263,20 +263,22 @@ at the team level.
 
 **Industry practice.**
 
-- **A clear AI policy**: which tools, which models, which data, which tasks are allowed. DORA 2025 lists this as the
+- **A clear AI policy**: which tools, which models, which data, which tasks are allowed. DORA 2025 [S2] lists this as the
   first of the capabilities that make AI pay off.
 - **Instructions are versioned and evaluated.** Prompts, agent definitions and skills live in version control; a
   change to them is tested against a fixed set of tasks before it spreads (evals for the process, not only for the
   product).
 - **Cost management**: budgets per agent, task and person; cost per delivered change tracked.
-- **Agent observability**: every agent's calls, tools and tokens traced, the OpenTelemetry generative-AI conventions
-  now covering agent and tool spans.
+- **Agent observability**: every agent's calls, tools and tokens traced, the OpenTelemetry generative-AI conventions [S21]
+  covering agent and tool spans.
 - **Human-in-the-loop by risk**: autonomy levels decided per task type, escalation paths defined.
-- **Management systems** for organizations that need them: NIST's AI Risk Management Framework, ISO/IEC 42001.
+- **Management systems** for organizations that need them: NIST's AI Risk Management Framework [S22], ISO/IEC 42001 [S23].
 
 **AI helps:** the process can measure itself: transcripts are complete logs, so reports are scripts, not surveys.
-**AI hurts:** context is a hidden cost. Of about 2.46 billion input tokens processed in the recorded sessions, the five
-lead sessions account for 28%, more than three times all reviewers (9%); developers are 48%.
+**AI hurts:** context is a hidden cost. Of about 2.46 billion input tokens processed in the recorded sessions
+([`agent-usage.md`](agent-usage.md)), the five lead sessions account for 28%. By declared agent type, developers are
+48% and reviewers 9%; 13% ran as untyped general-purpose agents, mostly in the first session, so by task name
+reviewing is nearer 12% and building nearer 58%.
 
 **Measuring AI use.** Cost per merged change by role; escalations to a person per unit of work; autonomy rate (tasks
 finished without human intervention); instruction changes and the metric each moved.
@@ -302,7 +304,7 @@ component in the middle. The industry practice here is **LLMOps**.
 
 - **Evaluation-driven development.** An eval set of realistic tasks, scored by code assertions where possible and by a
   calibrated model judge only where not, run on every prompt, tool or model change and tracked over time.
-- **Observability with the OpenTelemetry generative-AI semantic conventions**: spans per model and tool call with
+- **Observability with the OpenTelemetry generative-AI semantic conventions** [S21]: spans per model and tool call with
   tokens, cost, latency, errors; content capture off by default.
 - **Guardrails by design**: least agency (tools scoped to the task), human approval for consequential actions, audit
   of every write, validated structured output; input and output filters as a second layer.
@@ -356,14 +358,47 @@ above all.
 | N3 | An agent permission policy in `.claude/settings.json`: allowlisted commands, denied destructive ones (force push, branch deletion, `gh pr merge` outside the pipeline), the sandbox where available | Coding, security | One small PR, then tuning |
 | N2 | More scorecard columns: PR size, churn within the wave, flaky reruns, escalations to the owner | Coding, process | Lines in `sdlc-metrics.py` |
 | N5 | The owner reads one randomly chosen merged PR per wave in full and records what review missed | Merge | Owner time per wave |
-| N6 | Rework rate beside change failure rate: fix PRs to a wave's code within the next wave | Merge | Lines in `sdlc-metrics.py`, with P13's `Escaped from:` |
-| N7 | Each process change states the metric it should move; the next scorecard keeps or reverts it | Process | A line in the PR template for process changes |
+| N6 | Rework rate beside change failure rate: unplanned follow-up PRs to merged code, refactors and retrofits (#140, #142, #143) included, per slice PR; change failure rate counts only fixes for escaped defects | Merge | Lines in `sdlc-metrics.py`, with P13's `Escaped from:` |
+| N7 | Each process change states the metric it should move; the next scorecard keeps or reverts it | Process | A line in the dispatch skill's briefs |
 | N8 | A model change is a release: smoke test (later the eval set) before a new default model | Runtime | A line in the conventions |
 | N9 | At the first release: semantic versions, an API compatibility check, SBOM and provenance | Merge, security | When releases start |
+| N10 | Map P15's threat model to the OWASP LLM Top 10's categories, each with its mitigation and test | Design, security | A table in the P15 section |
+| N11 | The developer's self-check (P2) keeps only tests that kill a mutant, and discards the rest | Testing | A line in the developer brief, with P2 |
 
 Left out on purpose, as in [the improvements page](sdlc-improvements.md#left-out-of-the-guide): SonarQube, LangSmith
 and similar platforms, coverage targets, and a model judging code or answers. Acceptance rate of suggestions is left
 out too: it measures autocomplete, not agents.
+
+## Sources
+
+Named in this page. Each link was opened on 2026-10-24, except GitClear's, the ISO standard's and the ACM article, whose
+publishers block scripts.
+
+| # | Source | Year | Link | Cited for |
+|---|---|---|---|---|
+| S1 | DORA, Accelerate State of DevOps Report | 2024 | <https://dora.dev/research/2024/dora-report/> | AI adoption and stability; the five metrics |
+| S2 | DORA, State of AI-assisted Software Development | 2025 | <https://dora.dev/research/2025/dora-report/> | AI as an amplifier; AI policy as a capability |
+| S3 | METR, Measuring the impact of early-2025 AI on experienced open-source developer productivity | 2025 | <https://metr.org/blog/2025-07-10-early-2025-ai-experienced-os-dev-study/> | Developers slower while believing they were faster |
+| S4 | GitClear, AI assistant code quality research | 2024, 2025 | <https://www.gitclear.com/ai_assistant_code_quality_2025_research> | Duplication and churn |
+| S5 | Petrović et al., Practical Mutation Testing at Scale (Google) | 2021 | <https://arxiv.org/abs/2102.11378> | Mutation on the changed lines of a review |
+| S6 | Automated Unit Test Improvement using Large Language Models at Meta (TestGen-LLM) | 2024 | <https://arxiv.org/abs/2402.09171> | Generated tests kept only if they pass and add value |
+| S7 | Mutation-Guided LLM-based Test Generation at Meta | 2025 | <https://arxiv.org/abs/2501.12862> | Generated tests checked against mutants |
+| S8 | OWASP, Top 10 for LLM Applications | 2025 | <https://genai.owasp.org/llm-top-10/> | LLM threat categories |
+| S9 | OWASP, Agentic Security Initiative | 2025 | <https://genai.owasp.org/initiatives/agentic-security-initiative/> | Agentic threat guidance |
+| S10 | Cloud Security Alliance, MAESTRO | 2025 | <https://cloudsecurityalliance.org/blog/2025/02/06/agentic-ai-threat-modeling-framework-maestro> | Agentic threat modelling |
+| S11 | NIST, SP 800-218 Secure Software Development Framework | 2022 | <https://csrc.nist.gov/pubs/sp/800/218/final> | Secure development framework |
+| S12 | NIST, SP 800-218A Secure Software Development Practices for Generative AI | 2024 | <https://csrc.nist.gov/pubs/sp/800/218/a/final> | The framework's generative-AI profile |
+| S13 | OpenSSF, Scorecard | n/a | <https://scorecard.dev> | Supply chain checks |
+| S14 | OpenSSF, SLSA | n/a | <https://slsa.dev> | Build provenance |
+| S15 | Spracklen et al., We Have a Package for You! (package hallucinations) | 2024 | <https://arxiv.org/abs/2406.10279> | Slopsquatting |
+| S16 | DX, Measuring AI code assistants and agents | 2025 | <https://getdx.com/research/measuring-ai-code-assistants-and-agents/> | Utilization, impact and cost |
+| S17 | Forsgren et al., The SPACE of Developer Productivity | 2021 | <https://queue.acm.org/detail.cfm?id=3454124> | Productivity dimensions |
+| S18 | GitHub, Spec Kit | n/a | <https://github.com/github/spec-kit> | Spec-driven development |
+| S19 | Amazon, Kiro | n/a | <https://kiro.dev> | Spec-driven development |
+| S20 | Mavin, EARS | n/a | <https://alistairmavin.com/ears/> | Structured requirements |
+| S21 | OpenTelemetry, Generative AI semantic conventions | n/a | <https://opentelemetry.io/docs/specs/semconv/gen-ai/> | Model, agent and tool spans |
+| S22 | NIST, AI Risk Management Framework | 2023 | <https://www.nist.gov/itl/ai-risk-management-framework> | AI risk management |
+| S23 | ISO/IEC 42001, AI management systems | 2023 | <https://www.iso.org/standard/81230.html> | AI management systems |
 
 ## To discuss
 
