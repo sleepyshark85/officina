@@ -46,7 +46,8 @@ slice PRs (#55 to #72), sorted by cause. The sorting is one agent's reading of t
 
 ## Proposals
 
-Cheapest and most effective first.
+Cheapest and most effective first. The discussion page [AI across the SDLC](ai-across-the-sdlc.md#improvements) adds
+the items N1 to N11, ranked on its own.
 
 | # | Proposal | Targets | Cost |
 |---|---|---|---|
